@@ -1,18 +1,20 @@
-import {useState} from 'react';
-import {ArrowRight, Chrome, Code2, Github, Lock, Mail, Terminal} from 'lucide-react';
-import {CosmicStars} from "../components/workspace/CosmicStars";
-
-import {useNavigate} from 'react-router-dom';
+import { useState } from "react";
+import { ArrowRight, Chrome, Code2, Github, Lock, Mail, Terminal } from "lucide-react";
+import { CosmicStars } from "../components/workspace/CosmicStars";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 export default function Login() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [focusedField, setFocusedField] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
 
         try {
             const res = await api.post("/api/auth/login", {
@@ -20,12 +22,37 @@ export default function Login() {
                 password,
             });
 
-            localStorage.setItem("token", res.data.token);
-            navigate("/dashboard");  // redirect after success
+            const accessToken = res.data?.token;
+            if (!accessToken) throw new Error("Invalid login response");
+
+            // Store access token
+            localStorage.setItem("access_token", accessToken);
+
+            // Navigate to dashboard
+            navigate("/dashboard");
         } catch (err: any) {
             console.error("Login failed:", err);
-            alert("Invalid credentials");
+
+            let message = "Login failed";
+
+            if (err?.response?.status === 400 || err?.response?.status === 401) {
+                message = "Invalid email or password";
+            } else if (err?.response?.status === 500) {
+                message = "Server error. Try again later.";
+            }
+
+            alert(message);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const handleGoogleLogin = () => {
+        window.location.href = "http://localhost:8080/oauth2/authorization/google";
+    };
+
+    const handleGitHubLogin = () => {
+        window.location.href = "http://localhost:8080/oauth2/authorization/github";
     };
 
 
@@ -259,15 +286,21 @@ export default function Login() {
                         {/* Social Login Buttons */}
                         <div className="space-y-3">
                             <button
-                                className="w-full bg:white/5 border border-white/10 hover:border-[#6B54FF]/50 hover:bg-white/10 text-white py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-3 group">
-                                <Github className="w-5 h-5"/>
-                                <span>Continue with GitHub</span>
-                            </button>
-                            <button
-                                className="w-full bg:white/5 border border-white/10 hover:border-[#00CFFF]/50 hover:bg-white/10 text-white py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-3 group">
-                                <Chrome className="w-5 h-5"/>
+                                onClick={handleGoogleLogin}
+                                className="w-full bg:white/5 border border-white/10 hover:border-[#00CFFF]/50 hover:bg-white/10 text-white py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-3 group"
+                            >
+                                <Chrome className="w-5 h-5" />
                                 <span>Continue with Google</span>
                             </button>
+
+                            <button
+                                onClick={handleGitHubLogin}
+                                className="w-full bg:white/5 border border-white/10 hover:border-[#6B54FF]/50 hover:bg-white/10 text-white py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-3 group"
+                            >
+                                <Github className="w-5 h-5" />
+                                <span>Continue with GitHub</span>
+                            </button>
+
                         </div>
 
                         {/* Sign Up Link */}

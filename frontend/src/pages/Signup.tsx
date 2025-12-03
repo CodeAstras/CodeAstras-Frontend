@@ -7,19 +7,20 @@ import api from "../services/api";
 
 export default function Signup() {
     const [formData, setFormData] = useState({
-        fullName: '',
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        language: '',
+        fullName: "",
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
         acceptTerms: false,
     });
+
     const [focusedField, setFocusedField] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleChange = (field: string, value: string | boolean) => {
-        setFormData((prev) => ({...prev, [field]: value}));
+        setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
     const handleSignup = async (e: React.FormEvent) => {
@@ -30,20 +31,42 @@ export default function Signup() {
             return;
         }
 
+        if (!formData.acceptTerms) {
+            alert("You must accept the terms to continue");
+            return;
+        }
+
         try {
             const res = await api.post("/api/auth/signup", {
+                fullName: formData.fullName,
+                username: formData.username,
                 email: formData.email,
                 password: formData.password,
             });
 
             localStorage.setItem("token", res.data.token);
-            navigate("/dashboard"); // redirect
+            navigate("/dashboard");
+
         } catch (err: any) {
             console.error("Signup failed:", err);
-            alert("Signup failed. Try another email.");
+
+            if (err.response?.data?.message) {
+                alert(err.response.data.message);
+            } else {
+                alert("Signup failed. Check your details and try again.");
+            }
         }
     };
 
+
+    // SOCIAL AUTH
+    const handleGoogleSignup = () => {
+        window.location.href = "http://localhost:8080/oauth2/authorization/google";
+    };
+
+    const handleGitHubSignup = () => {
+        window.location.href = "http://localhost:8080/oauth2/authorization/github";
+    };
 
     return (
         <div
@@ -199,6 +222,7 @@ export default function Signup() {
                                 type="text"
                                 value={formData.username}
                                 onChange={(e) => handleChange("username", e.target.value)}
+
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3"
                                 required
                             />
@@ -295,15 +319,21 @@ export default function Signup() {
 
                         <div className="grid grid-cols-2 gap-3">
                             <button
-                                className="bg-white/5 border border-white/10 hover:border-[#6B54FF]/50 hover:bg-white/10 text-white py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                                <Github className="w-5 h-5"/>
+                                onClick={handleGitHubSignup}
+                                className="bg-white/5 border border-white/10 hover:border-[#6B54FF]/50 hover:bg-white/10 text-white py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                <Github className="w-5 h-5" />
                                 <span>GitHub</span>
                             </button>
+
                             <button
-                                className="bg-white/5 border border-white/10 hover:border-[#00CFFF]/50 hover:bg-white/10 text-white py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                                <Chrome className="w-5 h-5"/>
+                                onClick={handleGoogleSignup}
+                                className="bg-white/5 border border-white/10 hover:border-[#00CFFF]/50 hover:bg-white/10 text-white py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                <Chrome className="w-5 h-5" />
                                 <span>Google</span>
                             </button>
+
                         </div>
 
                         {/* ✅ Fixed Login Link */}

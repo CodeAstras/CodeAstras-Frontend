@@ -10,7 +10,7 @@ import {
     ThematicFloatingElements,
     ScrollProgress,
     InteractiveCosmicStars,
-} from "../components";
+} from "../services";
 
 export default function LandingPage() {
     return (
