@@ -9,28 +9,70 @@ import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RequireAuth from "./auth/RequireAuth";
+import OAuthSuccessPage from "./pages/0AuthSuccessPage";
+import CodeEditor from "./pages/CodeEditor";
+
+
 
 export default function App() {
-    return (
-        <BrowserRouter>
-            <Routes>
-
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
-                <Route path="/workspace" element={<RequireAuth><Workspace /></RequireAuth>} />
-                <Route path="/room" element={<RequireAuth><MeetingRoom /></RequireAuth>} />
-                <Route path="/team" element={<RequireAuth><TeamWorkspace /></RequireAuth>} />
-                <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/test-editor/:projectId" element={<CodeEditor />} />
 
 
-                {/* Auth */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <Dashboard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/workspace"
+          element={
+            <RequireAuth>
+              <Workspace />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/room"
+          element={
+            <RequireAuth>
+              <MeetingRoom />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/team"
+          element={
+            <RequireAuth>
+              <TeamWorkspace />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
 
-                {/* Dynamic project route */}
-                <Route path="/editor/:projectId" element={<Workspace />} />
+        {/* Auth (public) */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
-            </Routes>
-        </BrowserRouter>
-    );
+        {/* OAuth callback (public) */}
+        <Route path="/oauth-success" element={<OAuthSuccessPage />} />
+
+        {/* Dynamic project route */}
+        <Route path="/editor/:projectId" element={<Workspace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
