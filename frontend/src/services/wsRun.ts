@@ -1,64 +1,35 @@
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-
-export interface RunCodeBroadcastMessage {
-  output: string;
-  exitCode: number;
-  triggeredBy: string;
-}
-
-export interface RunCodeRequestWS {
-  projectId: string;
-  userId: string;
-  filename: string;
-  timeoutSeconds: number;
-}
+import { RunCodeBroadcastMessage, RunCodeRequestWS } from "../types/wsTypes";
 
 let runClient: Client | null = null;
-const WS_URL = "http://localhost:8080/ws";
 
-export function connectRunSocket(
-  projectId: string,
-  onOutput: (msg: RunCodeBroadcastMessage) => void
-) {
-  if (runClient && runClient.active) return;
+export function connectRunSocket(projectId: string, onOutput: (msg: RunCodeBroadcastMessage) => void) {
+    if (runClient?.active) return;
 
-  runClient = new Client({
-    webSocketFactory: () => new SockJS(WS_URL),
-    reconnectDelay: 5000,
-    debug: () => {},
-  });
+    runClient = new Client({
+        webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+        reconnectDelay: 5000,
+    });
 
-  runClient.onConnect = () => {
-    console.log("Connected to RUN socket:", projectId);
+    runClient.onConnect = () => {
+        console.log("🟢 Run WebSocket connected");
+        runClient.subscribe(`/topic/project/${projectId}/run-output`, frame => {
+            onOutput(JSON.parse(frame.body));
+        });
+    };
 
-    runClient!.subscribe(
-      `/topic/project/${projectId}/run-output`,
-      (frame: IMessage) => {
-        try {
-          const msg = JSON.parse(frame.body);
-          onOutput(msg);
-        } catch (e) {
-          console.error("Failed to parse run output", e);
-        }
-      }
-    );
-  };
-
-  runClient.activate();
+    runClient.activate();
 }
 
-export function sendRunRequest(
-  projectId: string,
-  payload: RunCodeRequestWS
-) {
-  if (!runClient || !runClient.connected) {
-    console.warn("Run socket not connected");
-    return;
-  }
+export function sendRunRequest(projectId: string, payload: Omit<RunCodeRequestWS, "token">) {
+    if (!runClient?.connected) return console.warn("Run WS not connected");
 
-  runClient.publish({
-    destination: `/app/project/${projectId}/run`,
-    body: JSON.stringify(payload),
-  });
+    runClient.publish({
+        destination: `/app/project/${projectId}/run`,
+        body: JSON.stringify({
+            ...payload,
+            token: localStorage.getItem("access_token"),
+        }),
+    });
 }
