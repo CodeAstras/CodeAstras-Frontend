@@ -1,4 +1,3 @@
-// src/services/wsRun.ts
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
@@ -18,12 +17,8 @@ export interface RunCodeRequestWS {
 let runClient: Client | null = null;
 const WS_URL = "http://localhost:8080/ws";
 
-/**
- * Connect to run-output channel for a room.
- * Backend broadcasts to: /topic/room/{roomId}/run-output
- */
 export function connectRunSocket(
-  roomId: string,
+  projectId: string,
   onOutput: (msg: RunCodeBroadcastMessage) => void
 ) {
   if (runClient && runClient.active) return;
@@ -32,41 +27,38 @@ export function connectRunSocket(
     webSocketFactory: () => new SockJS(WS_URL),
     reconnectDelay: 5000,
     debug: () => {},
-
-    onConnect: () => {
-      runClient!.subscribe(
-        `/topic/room/${roomId}/run-output`,
-        (frame: IMessage) => {
-          try {
-            const msg = JSON.parse(frame.body) as RunCodeBroadcastMessage;
-            onOutput(msg);
-          } catch (e) {
-            console.error(
-              "Failed to parse RunCodeBroadcastMessage",
-              e,
-              frame.body
-            );
-          }
-        }
-      );
-    },
   });
+
+  runClient.onConnect = () => {
+    console.log("Connected to RUN socket:", projectId);
+
+    runClient!.subscribe(
+      `/topic/project/${projectId}/run-output`,
+      (frame: IMessage) => {
+        try {
+          const msg = JSON.parse(frame.body);
+          onOutput(msg);
+        } catch (e) {
+          console.error("Failed to parse run output", e);
+        }
+      }
+    );
+  };
 
   runClient.activate();
 }
 
-/**
- * Send a run request:
- * maps to @MessageMapping("/room/{roomId}/run")
- */
-export function sendRunRequest(roomId: string, payload: RunCodeRequestWS) {
+export function sendRunRequest(
+  projectId: string,
+  payload: RunCodeRequestWS
+) {
   if (!runClient || !runClient.connected) {
     console.warn("Run socket not connected");
     return;
   }
 
   runClient.publish({
-    destination: `/app/room/${roomId}/run`,
+    destination: `/app/project/${projectId}/run`,
     body: JSON.stringify(payload),
   });
 }

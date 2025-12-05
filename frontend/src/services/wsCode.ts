@@ -13,12 +13,8 @@ let codeClient: Client | null = null;
 
 const WS_URL = "http://localhost:8080/ws";
 
-/**
- * Connect to code-sync WebSocket for a given room (roomId = projectId)
- * and call onMessage whenever someone edits code.
- */
 export function connectCodeSocket(
-  roomId: string,
+  projectId: string,
   onMessage: (msg: CodeEditMessage) => void
 ) {
   if (codeClient && codeClient.active) return;
@@ -26,37 +22,36 @@ export function connectCodeSocket(
   codeClient = new Client({
     webSocketFactory: () => new SockJS(WS_URL),
     reconnectDelay: 5000,
-    debug: () => {}, // change to console.log for debugging
+    debug: () => {},
+  });
 
-    onConnect: () => {
-      // Subscribe to backend broadcasts:
-      // @SendTo("/topic/room/{roomId}/code")
-      codeClient!.subscribe(`/topic/room/${roomId}/code`, (frame: IMessage) => {
+  codeClient.onConnect = () => {
+    console.log("Connected to CODE socket for project:", projectId);
+
+    codeClient!.subscribe(
+      `/topic/project/${projectId}/code`,
+      (frame: IMessage) => {
         try {
-          const msg = JSON.parse(frame.body) as CodeEditMessage;
+          const msg = JSON.parse(frame.body);
           onMessage(msg);
         } catch (e) {
-          console.error("Failed to parse CodeEditMessage", e, frame.body);
+          console.error("Code message parse failed", e);
         }
-      });
-    },
-  });
+      }
+    );
+  };
 
   codeClient.activate();
 }
 
-/**
- * Send a code edit event to the backend:
- * maps to @MessageMapping("/room/{roomId}/edit")
- */
-export function sendCodeEdit(roomId: string, message: CodeEditMessage) {
+export function sendCodeEdit(projectId: string, message: CodeEditMessage) {
   if (!codeClient || !codeClient.connected) {
     console.warn("Code socket not connected");
     return;
   }
 
   codeClient.publish({
-    destination: `/app/room/${roomId}/edit`,
+    destination: `/app/project/${projectId}/edit`,
     body: JSON.stringify(message),
   });
 }

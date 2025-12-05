@@ -19,7 +19,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/test-editor/:projectId" element={<CodeEditor />} />
+        <Route path="/CodeEditor/:projectId" element={<CodeEditor />} />
 
 
         <Route

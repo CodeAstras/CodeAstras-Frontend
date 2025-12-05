@@ -3,7 +3,6 @@ import Editor from "@monaco-editor/react";
 import { useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
-
 import {
   connectCodeSocket,
   sendCodeEdit,
@@ -16,7 +15,7 @@ import {
 } from "../services/wsRun";
 
 interface JwtPayload {
-  sub: string;    // user id (subject)
+  sub: string; // user id (subject)
   email?: string;
   name?: string;
 }
@@ -25,7 +24,6 @@ export default function CodeEditor() {
   const { projectId } = useParams(); // also used as roomId
 
   const [code, setCode] = useState("# Start coding in CodeAstras 🚀\n");
-
   const [output, setOutput] = useState("");
   const [exitCode, setExitCode] = useState<number | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -37,55 +35,103 @@ export default function CodeEditor() {
 
   // 0) Decode JWT to get real userId
   useEffect(() => {
+    console.log("[CodeEditor] mount/useEffect(jwt) ➜ starting JWT decode");
+
     const token = localStorage.getItem("access_token");
+    console.log("[CodeEditor] access_token from localStorage:", token);
+
     if (!token) {
-      console.warn("No access_token found in localStorage");
+      console.warn("[CodeEditor] No access_token found, using 'anonymous'");
       setUserId("anonymous");
       return;
     }
 
     try {
       const decoded = jwtDecode<JwtPayload>(token);
+      console.log("[CodeEditor] decoded JWT payload:", decoded);
+
       if (decoded?.sub) {
         setUserId(decoded.sub);
       } else {
-        console.warn("JWT has no 'sub' field; using fallback userId");
+        console.warn("[CodeEditor] JWT has no 'sub' field; using fallback userId");
         setUserId("unknown-user");
       }
     } catch (e) {
-      console.error("Failed to decode JWT:", e);
+      console.error("[CodeEditor] Failed to decode JWT:", e);
       setUserId("invalid-token-user");
+      setError("Failed to decode JWT. Please log in again.");
     }
   }, []);
 
   // 1) Connect to code sync WS
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      console.warn("[CodeEditor] No projectId in URL; skipping code socket connect");
+      return;
+    }
 
-    connectCodeSocket(projectId, (msg: CodeEditMessage) => {
-      console.log("Incoming CodeEditMessage:", msg);
-      if (msg.path === filename) {
-        setCode(msg.content);
-      }
-    });
+    console.log("[CodeEditor] Connecting code WebSocket for projectId:", projectId);
+
+    try {
+      // just call it; don't expect a return value
+      connectCodeSocket(projectId, (msg: CodeEditMessage) => {
+        console.log("[CodeEditor] Incoming CodeEditMessage:", msg);
+        if (msg.path === filename) {
+          setCode(msg.content);
+        } else {
+          console.log(
+            "[CodeEditor] Message for different path, ignoring. expected=",
+            filename,
+            "got=",
+            msg.path
+          );
+        }
+      });
+
+      // If you later add an explicit disconnect function, call it here.
+      return () => {
+        console.log(
+          "[CodeEditor] Cleanup for code WebSocket (no explicit disconnect function yet)"
+        );
+      };
+    } catch (e) {
+      console.error("[CodeEditor] Error connecting code WebSocket:", e);
+      setError("Failed to connect to code sync WebSocket");
+    }
   }, [projectId]);
 
   // 2) Connect to run WS
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      console.warn("[CodeEditor] No projectId in URL; skipping run socket connect");
+      return;
+    }
 
-    connectRunSocket(projectId, (msg: RunCodeBroadcastMessage) => {
-      console.log("Run output:", msg);
-      setOutput(msg.output ?? "");
-      setExitCode(msg.exitCode);
+    console.log("[CodeEditor] Connecting run WebSocket for projectId:", projectId);
 
-      if (msg.exitCode !== 0) {
-        setError(`Process exited with code ${msg.exitCode}`);
-      } else {
-        setError(null);
-      }
-      setIsRunning(false);
-    });
+    try {
+      connectRunSocket(projectId, (msg: RunCodeBroadcastMessage) => {
+        console.log("[CodeEditor] Run output message:", msg);
+        setOutput(msg.output ?? "");
+        setExitCode(msg.exitCode);
+
+        if (msg.exitCode !== 0) {
+          setError(`Process exited with code ${msg.exitCode}`);
+        } else {
+          setError(null);
+        }
+        setIsRunning(false);
+      });
+
+      return () => {
+        console.log(
+          "[CodeEditor] Cleanup for run WebSocket (no explicit disconnect function yet)"
+        );
+      };
+    } catch (e) {
+      console.error("[CodeEditor] Error connecting run WebSocket:", e);
+      setError("Failed to connect to run WebSocket");
+    }
   }, [projectId]);
 
   // When user types in Monaco
@@ -93,7 +139,12 @@ export default function CodeEditor() {
     const updated = value || "";
     setCode(updated);
 
-    if (!projectId) return;
+    console.log("[CodeEditor] handleChange() called. New length:", updated.length);
+
+    if (!projectId) {
+      console.warn("[CodeEditor] No projectId; not sending CodeEditMessage");
+      return;
+    }
 
     const message: CodeEditMessage = {
       projectId,
@@ -102,14 +153,23 @@ export default function CodeEditor() {
       content: updated,
     };
 
-    console.log("Sending CodeEditMessage:", message);
-    sendCodeEdit(projectId, message);
+    console.log("[CodeEditor] Sending CodeEditMessage:", message);
+    try {
+      sendCodeEdit(projectId, message);
+    } catch (e) {
+      console.error("[CodeEditor] Error sending CodeEditMessage:", e);
+      setError("Failed to send code edit over WebSocket");
+    }
   };
 
   // When user clicks "Run ▶"
   const handleRun = () => {
+    console.log("[CodeEditor] handleRun() clicked. projectId:", projectId, "userId:", userId);
+
     if (!projectId) {
-      setError("No projectId in URL");
+      const msg = "No projectId in URL – cannot run code.";
+      console.error("[CodeEditor]", msg);
+      setError(msg);
       return;
     }
 
@@ -118,14 +178,22 @@ export default function CodeEditor() {
     setExitCode(null);
     setError(null);
 
-    console.log("Sending run request with userId:", userId);
-
-    sendRunRequest(projectId, {
+    const payload = {
       projectId,
       userId,
       filename,
       timeoutSeconds: 10,
-    });
+    };
+
+    console.log("[CodeEditor] Sending run request payload:", payload);
+
+    try {
+      sendRunRequest(projectId, payload);
+    } catch (e) {
+      console.error("[CodeEditor] Error sending run request:", e);
+      setIsRunning(false);
+      setError("Failed to send run request over WebSocket");
+    }
   };
 
   return (
@@ -146,6 +214,13 @@ export default function CodeEditor() {
           {isRunning ? "Running..." : "Run ▶"}
         </button>
       </div>
+
+      {/* Show current error (debug helper) */}
+      {error && (
+        <div className="px-4 py-2 text-xs bg-red-900/60 text-red-200 border-b border-red-600">
+          <strong>[Debug]</strong> {error}
+        </div>
+      )}
 
       {/* Editor + Output */}
       <div className="flex flex-1">

@@ -22,11 +22,20 @@ export default function Login() {
                 password,
             });
 
-            const accessToken = res.data?.token;
-            if (!accessToken) throw new Error("Invalid login response");
+            const rawToken = res.data?.token;
+if (!rawToken) throw new Error("Invalid login response");
 
-            // Store access token
-            localStorage.setItem("access_token", accessToken);
+// If backend sends "Bearer <jwt>", strip the prefix
+const accessToken = rawToken.startsWith("Bearer ")
+  ? rawToken.slice(7)
+  : rawToken;
+
+console.log("🔑 login token from backend:", rawToken);
+console.log("🔑 normalized accessToken:", accessToken);
+
+// Store only the bare JWT (no "Bearer ")
+localStorage.setItem("access_token", accessToken);
+
 
             // Navigate to dashboard
             navigate("/dashboard");
