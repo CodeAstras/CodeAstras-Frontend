@@ -4,9 +4,11 @@ import { Terminal as TerminalIcon, X, ChevronUp, ChevronDown } from 'lucide-reac
 interface TerminalProps {
   isOpen: boolean;
   onToggle: () => void;
+  output: string;
+  exitCode: number | null;
 }
 
-export function Terminal({ isOpen, onToggle }: TerminalProps) {
+export function Terminal({ isOpen, onToggle, output, exitCode }: TerminalProps) {
   const [activeTab, setActiveTab] = useState('terminal');
   const [height, setHeight] = useState(250);
 
@@ -17,21 +19,7 @@ export function Terminal({ isOpen, onToggle }: TerminalProps) {
     { id: 'debug', label: 'Debug Console' },
   ];
 
-  const terminalOutput = [
-    { type: 'prompt', content: '~/my-astro-app$' },
-    { type: 'command', content: 'npm run dev' },
-    { type: 'output', content: '' },
-    { type: 'success', content: '> astra-app@1.0.0 dev' },
-    { type: 'success', content: '> vite' },
-    { type: 'output', content: '' },
-    { type: 'info', content: '  VITE v5.0.0  ready in 324 ms' },
-    { type: 'output', content: '' },
-    { type: 'link', content: '  ➜  Local:   http://localhost:5173/' },
-    { type: 'link', content: '  ➜  Network: use --host to expose' },
-    { type: 'output', content: '' },
-    { type: 'prompt', content: '~/my-astro-app$' },
-  ];
-
+  
   if (!isOpen) {
     return (
       <button
@@ -106,32 +94,28 @@ export function Terminal({ isOpen, onToggle }: TerminalProps) {
       </div>
 
       {/* Terminal content */}
-      <div className="flex-1 overflow-auto p-4 font-mono text-sm">
+            {/* Terminal content */}
+            <div className="flex-1 overflow-auto p-4 font-mono text-sm">
         {activeTab === 'terminal' && (
-          <div className="space-y-1">
-            {terminalOutput.map((line, idx) => (
-              <div
-                key={idx}
-                className={`${
-                  line.type === 'prompt'
-                    ? 'text-[#0ea5e9]'
-                    : line.type === 'command'
-                    ? 'text-white'
-                    : line.type === 'success'
-                    ? 'text-[#06b6d4]'
-                    : line.type === 'info'
-                    ? 'text-[#7c3aed]'
-                    : line.type === 'link'
-                    ? 'text-[#0ea5e9] hover:underline cursor-pointer'
-                    : 'text-white/60'
-                }`}
-              >
-                {line.content}
-                {line.type === 'prompt' && (
-                  <span className="ml-1 w-2 h-4 inline-block bg-[#0ea5e9] animate-pulse" />
-                )}
+          <div className="space-y-2">
+            {exitCode !== null && (
+              <div className="text-xs text-white/60">
+                Exit code:{" "}
+                <span
+                  className={
+                    exitCode === 0
+                      ? "text-emerald-400 font-semibold"
+                      : "text-red-400 font-semibold"
+                  }
+                >
+                  {exitCode}
+                </span>
               </div>
-            ))}
+            )}
+
+            <pre className="whitespace-pre-wrap text-sm text-green-400">
+              {output || "No output yet. Press Run to execute your code."}
+            </pre>
           </div>
         )}
 
@@ -143,8 +127,7 @@ export function Terminal({ isOpen, onToggle }: TerminalProps) {
 
         {activeTab === 'output' && (
           <div className="text-white/60">
-            <div>[Extension Host] Debugger attached.</div>
-            <div>[Extension Host] Waiting for connection...</div>
+            <div>Use the Run button to see program output here.</div>
           </div>
         )}
 
@@ -154,6 +137,7 @@ export function Terminal({ isOpen, onToggle }: TerminalProps) {
           </div>
         )}
       </div>
+
     </div>
   );
 }

@@ -442,11 +442,16 @@ export default function Dashboard() {
                                                 ID: {project.id.slice(0, 8)}...
                                             </div>
                                             <button
-                                                onClick={() => navigate(`/CodeEditor/${project.id}`)}
-                                                className="px-4 py-1.5 bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border border-[#7c3aed]/30 rounded-lg text-sm hover:from-[#7c3aed]/30 hover:to-[#0ea5e9]/30 transition-all"
+                                                onClick={() =>
+                                                    navigate(`/workspace/${project.id}`, {
+                                                        state: { projectName: project.name },
+                                                    })
+                                                }
+                                                className="px-4 py-1.5 ..."
                                             >
                                                 Open
                                             </button>
+
                                         </div>
                                     </div>
                                 </div>

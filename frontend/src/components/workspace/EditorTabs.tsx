@@ -1,6 +1,17 @@
 import { X, Split, Play } from 'lucide-react';
+import { LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-export function EditorTabs() {
+
+
+type EditorTabsProps = {
+  projectName: string;
+  onRun: () => void;
+};
+
+export function EditorTabs({ projectName, onRun }: EditorTabsProps) {
+  const navigate = useNavigate();
+
   const tabs = [
     { name: 'main.py', active: true, modified: false },
     { name: 'utils.py', active: false, modified: true },
@@ -12,9 +23,11 @@ export function EditorTabs() {
       {/* Tagline */}
       <div className="px-4 py-2 text-center border-b border-white/5">
         <p className="text-xs">
-          <span className="bg-gradient-to-r from-[#0ea5e9] to-[#7c3aed] bg-clip-text text-transparent">
-            Code collaboratively. Build astronomically.
-          </span>
+        <h2 className="text-lg font-semibold bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] bg-clip-text text-transparent">
+  {projectName}
+</h2>
+
+
         </p>
       </div>
 
@@ -46,15 +59,25 @@ export function EditorTabs() {
           <button
             className="group px-3 py-1.5 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] hover:from-[#8b5cf6] hover:to-[#06b6d4] rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl hover:shadow-[#7c3aed]/40"
             title="Run Code"
+            onClick={onRun}
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             <span className="text-xs font-medium">Run</span>
           </button>
+          <button
+  onClick={() => navigate("/dashboard")}
+  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded bg-red-600 hover:bg-red-700 transition-all"
+>
+  <LogOut className="w-4 h-4" />
+  Exit
+</button>
+
 
           {/* Split editor control */}
           <button
             className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded transition-colors"
             title="Split Editor"
+            
           >
             <Split className="w-4 h-4 text-white/60" />
           </button>

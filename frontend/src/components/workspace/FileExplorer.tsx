@@ -1,110 +1,191 @@
-import { useState } from 'react';
-import { ChevronRight, ChevronDown, File, Folder, X, GitBranch } from 'lucide-react';
+import { useState } from "react";
+import {
+  X,
+  FilePlus,
+  FolderPlus,
+  MoreVertical,
+  ChevronRight,
+  ChevronDown,
+  File as FileIcon,
+  Folder as FolderIcon,
+} from "lucide-react";
 
-interface FileExplorerProps {
-  onClose: () => void;
-}
-
-interface FileNode {
+type FileNode = {
+  id: string;
   name: string;
-  type: 'file' | 'folder';
+  type: "file" | "folder";
   children?: FileNode[];
-  isOpen?: boolean;
-}
+};
 
-export function FileExplorer({ onClose }: FileExplorerProps) {
-  const [files] = useState<FileNode[]>([
-    {
-      name: 'src',
-      type: 'folder',
-      isOpen: true,
-      children: [
-        { name: 'main.py', type: 'file' },
-        { name: 'utils.py', type: 'file' },
-        { name: 'config.json', type: 'file' },
-      ],
-    },
-    {
-      name: 'components',
-      type: 'folder',
-      isOpen: false,
-      children: [
-        { name: 'Header.tsx', type: 'file' },
-        { name: 'Footer.tsx', type: 'file' },
-      ],
-    },
-    { name: 'package.json', type: 'file' },
-    { name: 'README.md', type: 'file' },
-  ]);
+type FileExplorerProps = {
+  onClose: () => void;
+  onCreateFile?: (name: string) => void;
+  onCreateFolder?: (name: string) => void;
+};
 
-  const FileItem = ({ node, depth = 0 }: { node: FileNode; depth?: number }) => {
-    const [isOpen, setIsOpen] = useState(node.isOpen);
+const initialTree: FileNode[] = [
+  {
+    id: "folder-src",
+    name: "src",
+    type: "folder",
+    children: [
+      { id: "file-main", name: "main.py", type: "file" },
+      { id: "file-utils", name: "utils.py", type: "file" },
+    ],
+  },
+  {
+    id: "folder-config",
+    name: "config",
+    type: "folder",
+    children: [{ id: "file-config", name: "settings.json", type: "file" }],
+  },
+];
 
-    return (
-      <div>
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 cursor-pointer transition-colors group"
-          style={{ paddingLeft: `${depth * 12 + 12}px` }}
-          onClick={() => node.type === 'folder' && setIsOpen(!isOpen)}
-        >
-          {node.type === 'folder' ? (
-            <>
-              {isOpen ? (
-                <ChevronDown className="w-4 h-4 text-white/60" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-white/60" />
-              )}
-              <Folder className="w-4 h-4 text-[#2BCBFF]" />
-            </>
-          ) : (
-            <>
-              <div className="w-4" />
-              <File className="w-4 h-4 text-white/60" />
-            </>
+export function FileExplorer({
+  onClose,
+  onCreateFile,
+  onCreateFolder,
+}: FileExplorerProps) {
+  const [tree, setTree] = useState<FileNode[]>(initialTree);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({
+    "folder-src": true,
+    "folder-config": true,
+  });
+
+  const toggleFolder = (id: string) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const makeId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const handleNewFile = () => {
+    const name = window.prompt("New file name (e.g. app.py):");
+    if (!name) return;
+
+    // notify parent if needed
+    if (onCreateFile) onCreateFile(name);
+
+    // simple: add as root-level file in local UI
+    setTree((prev) => [
+      ...prev,
+      { id: makeId(), name, type: "file" },
+    ]);
+  };
+
+  const handleNewFolder = () => {
+    const name = window.prompt("New folder name:");
+    if (!name) return;
+
+    if (onCreateFolder) onCreateFolder(name);
+
+    setTree((prev) => [
+      ...prev,
+      { id: makeId(), name, type: "folder", children: [] },
+    ]);
+  };
+
+  const renderNode = (node: FileNode, depth = 0) => {
+    const paddingLeft = 8 + depth * 12;
+
+    if (node.type === "folder") {
+      const isOpen = expanded[node.id];
+
+      return (
+        <div key={node.id}>
+          <button
+            type="button"
+            onClick={() => toggleFolder(node.id)}
+            className="w-full flex items-center gap-1.5 text-xs text-white/80 hover:bg-white/5 px-2 py-1 rounded"
+            style={{ paddingLeft }}
+          >
+            {isOpen ? (
+              <ChevronDown className="w-3 h-3 text-white/60" />
+            ) : (
+              <ChevronRight className="w-3 h-3 text-white/60" />
+            )}
+            <FolderIcon className="w-3.5 h-3.5 text-[#fbbf24]" />
+            <span>{node.name}</span>
+          </button>
+
+          {isOpen && node.children && node.children.length > 0 && (
+            <div className="mt-0.5">
+              {node.children.map((child) => renderNode(child, depth + 1))}
+            </div>
           )}
-          <span className="text-sm text-white/90">{node.name}</span>
-          
-          {/* Quick actions on hover */}
-          <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-            <button className="text-white/40 hover:text-white/80 text-xs">+</button>
-          </div>
         </div>
-        
-        {node.type === 'folder' && isOpen && node.children && (
-          <div>
-            {node.children.map((child, idx) => (
-              <FileItem key={idx} node={child} depth={depth + 1} />
-            ))}
-          </div>
-        )}
-      </div>
+      );
+    }
+
+    // file
+    return (
+      <button
+        key={node.id}
+        type="button"
+        className="w-full flex items-center gap-1.5 text-xs text-white/70 hover:bg-white/5 px-2 py-1 rounded"
+        style={{ paddingLeft }}
+      >
+        <FileIcon className="w-3.5 h-3.5 text-white/60" />
+        <span>{node.name}</span>
+      </button>
     );
   };
 
   return (
     <div className="w-64 bg-[#0f0f0f] border-r border-white/5 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3 border-b border-white/5">
-        <div>
-          <div className="text-sm text-white/90">my-astro-app</div>
-          <div className="flex items-center gap-1.5 mt-1">
-            <GitBranch className="w-3 h-3 text-[#0ea5e9]" />
-            <span className="text-xs text-white/60">main</span>
-          </div>
+      <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold tracking-wide text-white/60">
+            EXPLORER
+          </span>
+          {/* Optional: current project label */}
+          {/* <span className="text-xs text-white/40">CodeAstra Project</span> */}
         </div>
-        <button
-          onClick={onClose}
-          className="w-6 h-6 flex items-center justify-center hover:bg-white/10 rounded transition-colors"
-        >
-          <X className="w-4 h-4 text-white/60" />
-        </button>
+
+        <div className="flex items-center gap-1">
+          {/* New File */}
+          <button
+            type="button"
+            onClick={handleNewFile}
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-white/10 text-white/70"
+            title="New File"
+          >
+            <FilePlus className="w-4 h-4" />
+          </button>
+
+          {/* New Folder */}
+          <button
+            type="button"
+            onClick={handleNewFolder}
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-white/10 text-white/70"
+            title="New Folder"
+          >
+            <FolderPlus className="w-4 h-4" />
+          </button>
+
+          {/* More / Close */}
+          <button
+            type="button"
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-white/10 text-white/50"
+            title="More options"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-white/10 text-white/70"
+            title="Close Explorer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      {/* File tree */}
-      <div className="flex-1 overflow-y-auto py-2">
-        {files.map((node, idx) => (
-          <FileItem key={idx} node={node} />
-        ))}
+      {/* Body: file tree */}
+      <div className="flex-1 overflow-auto py-2">
+        {tree.map((node) => renderNode(node))}
       </div>
     </div>
   );

@@ -10,7 +10,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RequireAuth from "./auth/RequireAuth";
 import OAuthSuccessPage from "./pages/0AuthSuccessPage";
-import CodeEditor from "./pages/CodeEditor";
+import CodeEditor from "./components/workspace/CodeEditor";
+
 
 
 
@@ -19,7 +20,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/CodeEditor/:projectId" element={<CodeEditor />} />
+        <Route path="/workspace/:projectId" element={<Workspace />} />
 
 
         <Route
