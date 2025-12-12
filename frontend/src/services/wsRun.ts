@@ -15,11 +15,21 @@ export function connectRunSocket(projectId: string, onOutput: (msg: RunCodeBroad
     runClient.onConnect = () => {
         console.log("🟢 Run WebSocket connected");
         runClient.subscribe(`/topic/project/${projectId}/run-output`, frame => {
-            onOutput(JSON.parse(frame.body));
+            console.log("🔥 RAW RUN FRAME:", frame.body);
+
+            try {
+                const msg = JSON.parse(frame.body);
+                console.log("🔥 PARSED RUN MESSAGE:", msg);
+                onOutput(msg);
+            } catch (err) {
+                console.error("❌ Error parsing run output:", err);
+            }
         });
+
     };
 
     runClient.activate();
+
 }
 
 export function sendRunRequest(projectId: string, payload: Omit<RunCodeRequestWS, "token">) {
@@ -32,4 +42,5 @@ export function sendRunRequest(projectId: string, payload: Omit<RunCodeRequestWS
             token: localStorage.getItem("access_token"),
         }),
     });
+
 }
