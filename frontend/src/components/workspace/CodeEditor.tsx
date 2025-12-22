@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import Editor, { OnMount } from "@monaco-editor/react";
@@ -38,8 +38,12 @@ export default function CodeEditor({ runSignal, onRunResult }: CodeEditorProps) 
 
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionStarting, setSessionStarting] = useState(false);
+  const [sessionCanRetry, setSessionCanRetry] = useState(false);
 
   const filename = "src/main.py";
+
+  // Timeout ref to fail a run if we don't get output back
+  const runTimeoutRef = useRef<number | null>(null);
 
   // Decode JWT → userId
   useEffect(() => {
@@ -57,29 +61,39 @@ export default function CodeEditor({ runSignal, onRunResult }: CodeEditorProps) 
     }
   }, []);
 
-  // Start Docker session
-  useEffect(() => {
+  // Start Docker session (with retryable bootstrap)
+  const attemptStartSession = async () => {
     if (!projectId) return;
 
-    const bootstrap = async () => {
-      try {
-        setSessionStarting(true);
-        setSessionReady(false);
-        const id = await startSession(projectId);
-        console.log("[CodeEditor] Session started:", id);
-        setSessionReady(true);
-        setError(null);
-      } catch (e) {
-        console.error(e);
-        setSessionReady(false);
-        setError("Failed to start execution session. Try reloading.");
-      } finally {
-        setSessionStarting(false);
-      }
-    };
+    try {
+      setSessionStarting(true);
+      setSessionReady(false);
+      setSessionCanRetry(false);
+      console.log("[CodeEditor] Starting session for projectId:", projectId, "token:", localStorage.getItem("access_token")?.slice(0,20));
+      const id = await startSession(projectId);
+      console.log("[CodeEditor] Session started:", id);
+      setSessionReady(true);
+      setError(null);
+    } catch (err: any) {
+      console.error("[CodeEditor] startSession error:", err);
+      setSessionReady(false);
+      setSessionCanRetry(true);
+      const message = err?.message || "Failed to start execution session. Try reloading.";
+      setError(message);
+    } finally {
+      setSessionStarting(false);
+    }
+  };
 
-    bootstrap();
+  useEffect(() => {
+    if (!projectId) return;
+    attemptStartSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
+
+  const handleRetrySession = () => {
+    attemptStartSession();
+  };
 
   // Code WebSocket
   useEffect(() => {
@@ -94,17 +108,66 @@ export default function CodeEditor({ runSignal, onRunResult }: CodeEditorProps) 
   // Run WebSocket
   useEffect(() => {
     if (!projectId) return;
+
+    // Buffer to accumulate streamed output across RUN_OUTPUT frames
+    const runOutputRef = { current: "" } as { current: string };
+
     connectRunSocket(projectId, (msg: RunCodeBroadcastMessage) => {
-      const out = msg.output ?? "";
+      const rawOut = msg.output;
       const code = msg.exitCode ?? null;
-  
-      setOutput(out);
+
+      // Clear run timeout if we had one (we'll restart/clear where appropriate)
+      if (runTimeoutRef.current) {
+        clearTimeout(runTimeoutRef.current);
+        runTimeoutRef.current = null;
+      }
+
+      // Handle message types explicitly
+      if (msg.type === 'RUN_STARTED') {
+        // reset buffer
+        runOutputRef.current = "";
+        setOutput("(Running...)");
+        setIsRunning(true);
+        setExitCode(null);
+        setError(null);
+        console.info('[CodeEditor] RUN_STARTED session:', msg.sessionId);
+        return;
+      }
+
+      if (msg.type === 'RUN_OUTPUT') {
+        // Append streamed output
+        const appended = (rawOut ?? "");
+        runOutputRef.current += appended + (appended.endsWith("\n") ? "" : "\n");
+        setOutput(runOutputRef.current.trimEnd());
+        // keep running state
+        setIsRunning(true);
+        console.info('[CodeEditor] RUN_OUTPUT appended:', appended);
+        // No onRunResult final call yet, but update workspace so terminal can show
+        onRunResult(runOutputRef.current.trimEnd(), null);
+        return;
+      }
+
+      // RUN_FINISHED
+      let finalOutput: string;
+      if (rawOut === null || rawOut === undefined) {
+        // If backend didn't send a final aggregated output, use buffered output
+        finalOutput = runOutputRef.current.trimEnd();
+        if (!finalOutput) {
+          finalOutput = "(No output produced by the program)";
+        }
+        console.info('[CodeEditor] RUN_FINISHED used buffer as final output. session:', msg.sessionId);
+      } else {
+        // Backend sent final output (may be full or partial)
+        finalOutput = (rawOut ?? "").trimEnd();
+      }
+
+      setOutput(finalOutput);
       setExitCode(code);
       setIsRunning(false);
-  
+
       // ⬇️ tell Workspace (so Terminal can show it)
-      onRunResult(out, code);
-  
+      onRunResult(finalOutput, code);
+
       if (code !== 0) setError(`Process exited with code ${code}`);
       else setError(null);
     });
@@ -112,6 +175,35 @@ export default function CodeEditor({ runSignal, onRunResult }: CodeEditorProps) 
   
 
   // Handle typing
+
+  // Listen for unhandled promise rejections (e.g. browser extension message channel errors)
+  useEffect(() => {
+    const rejectionHandler = (e: PromiseRejectionEvent) => {
+      console.error("Unhandled promise rejection:", e);
+      const reason = e?.reason?.message || e?.reason;
+      if (typeof reason === 'string' && (reason.includes('async response by returning true') || reason.includes('message channel closed'))) {
+        setIsRunning(false);
+        setError("A background listener closed before responding (often a browser extension). Try disabling extensions or use incognito.");
+      }
+    };
+
+    const errorHandler = (event: ErrorEvent) => {
+      console.error("Global error:", event.message, event.error, "source:", event.filename, "lineno:", event.lineno);
+      const msg = event?.message || "";
+      if (typeof msg === 'string' && (msg.includes('async response by returning true') || msg.includes('message channel closed'))) {
+        setIsRunning(false);
+        setError("A background listener closed before responding (often a browser extension). Try disabling extensions or use incognito.");
+      }
+    };
+
+    window.addEventListener('unhandledrejection', rejectionHandler);
+    window.addEventListener('error', errorHandler);
+    return () => {
+      window.removeEventListener('unhandledrejection', rejectionHandler);
+      window.removeEventListener('error', errorHandler);
+    };
+  }, []);
+
   const handleChange = (value: string | undefined) => {
     const updated = value || "";
     setCode(updated);
@@ -152,10 +244,20 @@ export default function CodeEditor({ runSignal, onRunResult }: CodeEditorProps) 
 
     try {
       sendRunRequest(projectId, payload);
-    } catch (err) {
+
+      // Start a timeout: if we don't receive run output within (timeoutSeconds + 2s), show a helpful error
+      const waitMs = (payload.timeoutSeconds ?? 10) * 1000 + 2000;
+      if (runTimeoutRef.current) {
+        clearTimeout(runTimeoutRef.current);
+      }
+      runTimeoutRef.current = window.setTimeout(() => {
+        setIsRunning(false);
+        setError("No output received from execution engine. The background listener may have closed. Check your browser extensions or try incognito mode.");
+      }, waitMs);
+    } catch (err: any) {
       console.error(err);
       setIsRunning(false);
-      setError("Failed to send run request over WebSocket.");
+      setError(err?.message || "Failed to send run request over WebSocket.");
     }
   };
   useEffect(() => {
@@ -221,8 +323,19 @@ export default function CodeEditor({ runSignal, onRunResult }: CodeEditorProps) 
 
       {/* Error Bar */}
       {error && (
-        <div className="px-6 py-2 bg-red-900/70 border-b border-red-600/40 text-xs text-red-200">
-          ⚠️ {error}
+        <div className="px-6 py-2 bg-red-900/70 border-b border-red-600/40 text-xs text-red-200 flex items-center justify-between">
+          <div>⚠️ {error}</div>
+          {sessionCanRetry && (
+            <div className="ml-4">
+              <button
+                onClick={handleRetrySession}
+                disabled={sessionStarting}
+                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs"
+              >
+                {sessionStarting ? 'Retrying...' : 'Retry'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

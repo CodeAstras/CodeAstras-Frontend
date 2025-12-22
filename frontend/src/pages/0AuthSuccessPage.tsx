@@ -7,15 +7,29 @@ const OAuthSuccessPage = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const accessToken = params.get("access");
+    // Try multiple possible param names
+    const accessToken =
+      params.get("access") ||
+      params.get("access_token") ||
+      params.get("token");
 
     console.log("OAuth access token from backend:", accessToken);
 
     if (accessToken) {
-      // SAME KEY as in Login.tsx
-      localStorage.setItem("access_token", accessToken);
-      navigate("/dashboard", { replace: true });
+      try {
+        // SAME KEY as in Login.tsx
+        localStorage.setItem("access_token", accessToken);
+        console.log("Access token saved to localStorage.");
+
+        // Optional: Validate token with backend before navigating
+        // Example: fetch('/api/validate-token', { headers: { Authorization: `Bearer ${accessToken}` } })
+        navigate("/dashboard", { replace: true });
+      } catch (error) {
+        console.error("Error saving access token or navigating:", error);
+        navigate("/login", { replace: true });
+      }
     } else {
+      console.warn("No access token found in URL parameters.");
       navigate("/login", { replace: true });
     }
   }, [location, navigate]);

@@ -44,7 +44,20 @@ export default function Signup() {
                 password: formData.password,
             });
 
-            localStorage.setItem("token", res.data.token);
+            // Accept token from multiple possible locations and store under `access_token`
+            const rawToken =
+                res.data?.token ||
+                res.data?.accessToken ||
+                res.data?.access_token ||
+                res.headers?.authorization;
+
+            if (rawToken) {
+                const accessToken = typeof rawToken === "string" && rawToken.startsWith("Bearer ")
+                    ? rawToken.slice(7)
+                    : rawToken;
+                localStorage.setItem("access_token", accessToken);
+            }
+
             navigate("/dashboard");
 
         } catch (err: any) {
