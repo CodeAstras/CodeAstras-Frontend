@@ -22,19 +22,28 @@ export default function Login() {
                 password,
             });
 
-            const rawToken = res.data?.token;
-if (!rawToken) throw new Error("Invalid login response");
+            // Accept token from multiple possible locations (body.token, body.accessToken, body.access_token, or Authorization header)
+            const rawToken =
+                res.data?.token ||
+                res.data?.accessToken ||
+                res.data?.access_token ||
+                res.headers?.authorization;
 
-// If backend sends "Bearer <jwt>", strip the prefix
-const accessToken = rawToken.startsWith("Bearer ")
-  ? rawToken.slice(7)
-  : rawToken;
+            if (!rawToken) {
+                console.warn("Login response did not contain a token", res);
+                throw new Error("Invalid login response");
+            }
 
-console.log("🔑 login token from backend:", rawToken);
-console.log("🔑 normalized accessToken:", accessToken);
+            // If backend sends "Bearer <jwt>", strip the prefix
+            const accessToken = typeof rawToken === "string" && rawToken.startsWith("Bearer ")
+                ? rawToken.slice(7)
+                : rawToken;
 
-// Store only the bare JWT (no "Bearer ")
-localStorage.setItem("access_token", accessToken);
+            console.log("🔑 login token from backend:", rawToken);
+            console.log("🔑 normalized accessToken:", accessToken);
+
+            // Store only the bare JWT (no "Bearer ")
+            localStorage.setItem("access_token", accessToken);
 
 
             // Navigate to dashboard
@@ -44,7 +53,10 @@ localStorage.setItem("access_token", accessToken);
 
             let message = "Login failed";
 
-            if (err?.response?.status === 400 || err?.response?.status === 401) {
+            // Clear and actionable message if we got an invalid response (no token)
+            if (err?.message === "Invalid login response") {
+                message = "Login succeeded but server did not return an access token. Check server logs.";
+            } else if (err?.response?.status === 400 || err?.response?.status === 401) {
                 message = "Invalid email or password";
             } else if (err?.response?.status === 500) {
                 message = "Server error. Try again later.";
