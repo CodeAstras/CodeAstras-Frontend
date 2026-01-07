@@ -1,218 +1,396 @@
-import { motion } from "motion/react";
-import { useState } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
+import { useState, useRef } from "react";
 
 export function AstraCore() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
 
+  // Mouse tracking for 3D Parallax tilt
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const rotateX = useSpring(useTransform(mouseY, [-200, 200], [5, -5]), {
+    stiffness: 150,
+    damping: 30
+  });
+  const rotateY = useSpring(useTransform(mouseX, [-200, 200], [-5, 5]), {
+    stiffness: 150,
+    damping: 30
+  });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    mouseX.set(e.clientX - rect.left - rect.width / 2);
+    mouseY.set(e.clientY - rect.top - rect.height / 2);
+  };
+
+  // 3D orbital ring configurations with dramatic angles - SCALED UP
+  const orbitalRings = [
+    { radius: 180, speed: 8, angle: 15, color: "#3b82f6", nodes: 1, planetSize: 6, trail: true },
+    { radius: 260, speed: 12, angle: 30, color: "#8b5cf6", nodes: 1, planetSize: 7, trail: true },
+    { radius: 340, speed: 16, angle: 45, color: "#00e5ff", nodes: 1, planetSize: 10, trail: false },
+  ];
+
   return (
-    <div 
-      className="relative w-full aspect-square max-w-[600px]"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Outer glow rings */}
-      <motion.div
-        className="absolute inset-0 rounded-full opacity-30"
-        style={{
-          background: 'radial-gradient(circle, rgba(0, 229, 255, 0.3) 0%, transparent 70%)',
-        }}
-        animate={{
-          scale: isHovered ? [1, 1.2, 1] : 1,
-          opacity: isHovered ? [0.3, 0.5, 0.3] : 0.3,
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-
-      {/* Orbital rings */}
-      <motion.div
-        className="absolute inset-[10%] rounded-full border-2 border-cyan-400/20"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      <div
+          ref={containerRef}
+          className="relative w-full aspect-square max-w-[1200px] flex items-center justify-center"
+          style={{ perspective: "2000px" }}
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => {
+            setIsHovered(false);
+            mouseX.set(0);
+            mouseY.set(0);
+          }}
       >
-        {/* Orbital nodes */}
-        {[0, 120, 240].map((angle, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-4 h-4 rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 shadow-lg shadow-cyan-400/50"
+        {/* Main 3D Scene Container */}
+        <motion.div
             style={{
-              top: '50%',
-              left: '50%',
-              transformOrigin: '0 0',
+              rotateX,
+              rotateY,
+              transformStyle: "preserve-3d"
             }}
-            animate={{
-              rotate: angle,
-              x: '-50%',
-              y: '-200%',
-            }}
-          />
-        ))}
-      </motion.div>
+            className="relative w-full h-full flex items-center justify-center"
+        >
 
-      <motion.div
-        className="absolute inset-[20%] rounded-full border-2 border-purple-500/20"
-        animate={{ rotate: -360 }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-      >
-        {/* Orbital nodes */}
-        {[60, 180, 300].map((angle, i) => (
+          {/* Enhanced ambient glow with color shifts - LARGER */}
           <motion.div
-            key={i}
-            className="absolute w-3 h-3 rounded-full bg-gradient-to-br from-purple-400 to-cyan-500 shadow-lg shadow-purple-400/50"
-            style={{
-              top: '50%',
-              left: '50%',
-              transformOrigin: '0 0',
-            }}
-            animate={{
-              rotate: angle,
-              x: '-50%',
-              y: '-200%',
-            }}
+              className="absolute w-[800px] h-[800px] rounded-full pointer-events-none blur-3xl"
+              animate={{
+                scale: [1, 1.15, 1],
+                opacity: [0.4, 0.6, 0.4],
+                background: [
+                  "radial-gradient(circle, rgba(0, 229, 255, 0.25) 0%, rgba(59, 130, 246, 0.15) 30%, transparent 60%)",
+                  "radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, rgba(0, 229, 255, 0.2) 30%, transparent 60%)",
+                  "radial-gradient(circle, rgba(0, 229, 255, 0.25) 0%, rgba(59, 130, 246, 0.15) 30%, transparent 60%)",
+                ],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
           />
-        ))}
-      </motion.div>
 
-      {/* Main glass sphere */}
-      <motion.div
-        className="absolute inset-[25%] rounded-full backdrop-blur-3xl bg-gradient-to-br from-white/10 via-cyan-400/10 to-purple-500/10 border border-white/20 shadow-2xl overflow-hidden"
-        animate={{
-          scale: isHovered ? 1.1 : 1,
-        }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Inner glow */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400/30 via-transparent to-purple-500/30" />
-        
-        {/* Circuit-like patterns */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <motion.div
-            className="w-full h-full"
-            animate={{
-              rotate: 360,
-            }}
-            transition={{
-              duration: 30,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          >
-            {/* Geometric circuit lines */}
-            <svg className="w-full h-full" viewBox="0 0 100 100">
-              <motion.path
-                d="M 50 20 L 50 40 M 50 60 L 50 80 M 20 50 L 40 50 M 60 50 L 80 50"
-                stroke="rgba(0, 229, 255, 0.5)"
-                strokeWidth="0.5"
-                fill="none"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                }}
-              />
-              <motion.circle
-                cx="50"
-                cy="50"
-                r="15"
-                stroke="rgba(138, 43, 226, 0.5)"
-                strokeWidth="0.5"
-                fill="none"
-                initial={{ scale: 0.8, opacity: 0.3 }}
-                animate={{ scale: 1.2, opacity: 0.8 }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                }}
-              />
-              
-              {/* Corner nodes */}
-              {[
-                [30, 30], [70, 30], [70, 70], [30, 70]
-              ].map(([x, y], i) => (
-                <motion.circle
-                  key={i}
-                  cx={x}
-                  cy={y}
-                  r="2"
-                  fill="rgba(0, 229, 255, 0.8)"
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: [0.5, 1.5, 0.5] }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    delay: i * 0.2,
+          {/* Dynamic background stars with parallax */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {Array.from({ length: 20 }).map((_, i) => {
+              const depth = Math.random();
+              return (
+                  <motion.div
+                      key={`star-${i}`}
+                      className="absolute rounded-full bg-cyan-400"
+                      style={{
+                        width: `${1 + depth * 2}px`,
+                        height: `${1 + depth * 2}px`,
+                        left: `${15 + Math.random() * 70}%`,
+                        top: `${15 + Math.random() * 70}%`,
+                        filter: `blur(${depth * 0.5}px)`,
+                        x: useTransform(mouseX, [-200, 200], [-depth * 15, depth * 15]),
+                        y: useTransform(mouseY, [-200, 200], [-depth * 15, depth * 15]),
+                      }}
+                      animate={{
+                        opacity: [0.2, 0.8, 0.2],
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={{
+                        duration: 2 + Math.random() * 3,
+                        repeat: Infinity,
+                        delay: Math.random() * 2,
+                      }}
+                  />
+              );
+            })}
+          </div>
+
+          {/* ===== CENTRAL CORE ===== */}
+
+          {/* Solar corona rings - LARGER */}
+          {[1, 2, 3].map((i) => (
+              <motion.div
+                  key={`corona-${i}`}
+                  className="absolute rounded-full"
+                  style={{
+                    width: `${200 + i * 25}px`,
+                    height: `${200 + i * 25}px`,
+                    transformStyle: "preserve-3d",
+                    transform: "translateZ(60px)",
+                    border: `1px solid rgba(0, 229, 255, ${0.15 / i})`,
+                    boxShadow: `0 0 30px rgba(0, 229, 255, ${0.2 / i})`,
                   }}
-                />
-              ))}
-            </svg>
+                  animate={{
+                    scale: [1, 1.08, 1],
+                    opacity: [0.3, 0.5, 0.3],
+                  }}
+                  transition={{
+                    duration: 3 + i * 0.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * 0.3,
+                  }}
+              />
+          ))}
+
+          {/* Main Sun/Star core - LARGER */}
+          <motion.div
+              className="absolute w-48 h-48 rounded-full overflow-hidden"
+              style={{
+                transformStyle: "preserve-3d",
+                transform: "translateZ(80px)",
+                background: "radial-gradient(circle at 35% 35%, rgba(0, 229, 255, 0.9), rgba(59, 130, 246, 0.7), rgba(139, 92, 246, 0.5))",
+                border: "1px solid rgba(0, 229, 255, 0.4)",
+                boxShadow: `
+              0 0 80px rgba(0, 229, 255, 0.6), 
+              0 0 120px rgba(59, 130, 246, 0.4),
+              inset 0 0 50px rgba(0, 229, 255, 0.3)
+            `,
+              }}
+              animate={{
+                scale: isHovered ? [1, 1.05, 1] : [1, 1.02, 1],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+          >
+            {/* Solar flares rotating */}
+            <motion.div
+                className="absolute inset-0"
+                style={{
+                  background: "conic-gradient(from 0deg, transparent 0%, rgba(0, 229, 255, 0.4) 10%, transparent 20%, rgba(59, 130, 246, 0.3) 40%, transparent 50%, rgba(139, 92, 246, 0.4) 70%, transparent 80%)",
+                }}
+                animate={{
+                  rotate: 360,
+                }}
+                transition={{
+                  duration: 20,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+            />
+
+            {/* Subtle surface texture */}
+            <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                  backgroundImage: `
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+                radial-gradient(circle at 60% 70%, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.3) 1px, transparent 1px)
+              `,
+                  backgroundSize: "40px 40px",
+                }}
+            />
+
+            {/* Bright sun highlight */}
+            <div
+                className="absolute rounded-full blur-lg"
+                style={{
+                  top: "20%",
+                  left: "25%",
+                  width: "35%",
+                  height: "35%",
+                  background: "radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.3) 60%, transparent 100%)",
+                }}
+            />
+
+            {/* Code symbol in center */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <motion.span
+                  className="text-5xl font-mono relative z-10"
+                  style={{
+                    color: "rgba(255, 255, 255, 0.9)",
+                    textShadow: "0 0 20px rgba(0, 229, 255, 0.8), 0 0 40px rgba(59, 130, 246, 0.5)",
+                    fontWeight: 600,
+                  }}
+                  animate={{
+                    opacity: [0.7, 0.9, 0.7],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+              >
+                &lt;/&gt;
+              </motion.span>
+            </div>
           </motion.div>
-        </div>
 
-        {/* Pulsing core */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-purple-500"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.6, 1, 0.6],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          style={{
-            boxShadow: '0 0 40px rgba(0, 229, 255, 0.6), 0 0 80px rgba(138, 43, 226, 0.4)',
-          }}
-        />
-      </motion.div>
+          {/* ===== ORBITAL RING SYSTEMS ===== */}
+          {orbitalRings.map((ring, ringIndex) => (
+              <div
+                  key={`ring-${ringIndex}`}
+                  className="absolute"
+                  style={{
+                    transformStyle: "preserve-3d",
+                    transform: `rotateX(${ring.angle}deg)`,
+                  }}
+              >
+                {/* Orbital ring path - More visible */}
+                <div
+                    className="absolute rounded-full"
+                    style={{
+                      width: `${ring.radius * 2}px`,
+                      height: `${ring.radius * 2}px`,
+                      left: "50%",
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                      border: `1.5px solid ${ring.color}50`,
+                      boxShadow: `0 0 20px ${ring.color}30, inset 0 0 20px ${ring.color}20`,
+                    }}
+                />
 
-      {/* Energy particles flowing around */}
-      {[...Array(12)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-2 h-2 rounded-full bg-cyan-400"
-          style={{
-            top: '50%',
-            left: '50%',
-            boxShadow: '0 0 10px rgba(0, 229, 255, 0.8)',
-          }}
-          animate={{
-            rotate: [0, 360],
-            x: [0, Math.cos((i / 12) * Math.PI * 2) * 250],
-            y: [0, Math.sin((i / 12) * Math.PI * 2) * 250],
-            opacity: [0, 1, 0],
-            scale: [0, 1, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            delay: i * 0.3,
-            ease: "easeOut",
-          }}
-        />
-      ))}
+                {/* Orbiting nodes - Fixed revolution */}
+                {[...Array(ring.nodes)].map((_, nodeIndex) => {
+                  const startAngle = (nodeIndex / ring.nodes) * 360;
 
-      {/* Light streaks */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: 'linear-gradient(135deg, transparent 40%, rgba(0, 229, 255, 0.2) 50%, transparent 60%)',
-        }}
-        animate={{
-          rotate: 360,
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
-    </div>
+                  return (
+                      <motion.div
+                          key={`node-${nodeIndex}`}
+                          className="absolute"
+                          style={{
+                            left: "50%",
+                            top: "50%",
+                          }}
+                          animate={{
+                            rotate: [startAngle, startAngle + 360],
+                          }}
+                          transition={{
+                            rotate: { duration: ring.speed, repeat: Infinity, ease: "linear" },
+                          }}
+                      >
+                        {/* Position node on orbit path */}
+                        <div
+                            style={{
+                              position: "absolute",
+                              left: `${ring.radius}px`,
+                              top: "0px",
+                              transform: "translate(-50%, -50%)",
+                            }}
+                        >
+                          {/* Node sphere - Counter-rotate to prevent stretching */}
+                          <motion.div
+                              className="relative"
+                              style={{
+                                transform: `rotateX(${-ring.angle}deg)`,
+                                transformStyle: "preserve-3d",
+                              }}
+                              animate={{
+                                rotateZ: [0, -360],
+                              }}
+                              transition={{
+                                rotateZ: { duration: ring.speed, repeat: Infinity, ease: "linear" },
+                              }}
+                          >
+                            <motion.div
+                                style={{
+                                  width: `${ring.planetSize * 4}px`,
+                                  height: `${ring.planetSize * 4}px`,
+                                }}
+                                animate={{
+                                  scale: [1, 1.1, 1],
+                                }}
+                                transition={{
+                                  duration: 4,
+                                  repeat: Infinity,
+                                  delay: ringIndex * 0.5,
+                                  ease: "easeInOut",
+                                }}
+                            >
+                              {/* Profile icon style - circular avatar */}
+                              <div
+                                  className="absolute inset-0 rounded-full flex items-center justify-center"
+                                  style={{
+                                    background: `linear-gradient(135deg, ${ring.color}ff 0%, ${ring.color}cc 100%)`,
+                                    boxShadow: `
+                              0 0 20px ${ring.color}cc, 
+                              0 0 35px ${ring.color}66,
+                              inset -2px -2px 6px rgba(0, 0, 0, 0.3),
+                              inset 2px 2px 6px rgba(255, 255, 255, 0.15)
+                            `,
+                                    border: `1.5px solid ${ring.color}dd`,
+                                  }}
+                              >
+                                {/* User icon inside - using SVG path for user silhouette */}
+                                <svg
+                                    width="60%"
+                                    height="60%"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    style={{
+                                      filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+                                    }}
+                                >
+                                  <circle cx="12" cy="8" r="4" fill="rgba(255, 255, 255, 0.9)" />
+                                  <path
+                                      d="M4 20c0-4 3.5-7 8-7s8 3 8 7"
+                                      stroke="rgba(255, 255, 255, 0.9)"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      fill="none"
+                                  />
+                                </svg>
+                              </div>
+
+                              {/* Subtle highlight on top */}
+                              <div
+                                  className="absolute rounded-full pointer-events-none"
+                                  style={{
+                                    top: "10%",
+                                    left: "15%",
+                                    width: "40%",
+                                    height: "40%",
+                                    background: "radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 50%, transparent 70%)",
+                                  }}
+                              />
+
+                              {/* Glowing ring around avatar */}
+                              <div
+                                  className="absolute inset-[-3px] rounded-full pointer-events-none"
+                                  style={{
+                                    background: `radial-gradient(circle, transparent 45%, ${ring.color}60 60%, transparent 80%)`,
+                                    filter: 'blur(3px)',
+                                  }}
+                              />
+                            </motion.div>
+                          </motion.div>
+                        </div>
+                      </motion.div>
+                  );
+                })}
+              </div>
+          ))}
+
+          {/* Elegant expanding pulse */}
+          {[0, 1].map((i) => (
+              <motion.div
+                  key={`pulse-${i}`}
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    left: "50%",
+                    top: "50%",
+                    transform: "translate(-50%, -50%) translateZ(70px)",
+                    border: `1.5px solid ${i === 0 ? 'rgba(0, 229, 255, 0.3)' : 'rgba(139, 92, 246, 0.3)'}`,
+                  }}
+                  animate={{
+                    width: [100, 600],
+                    height: [100, 600],
+                    opacity: [0.5, 0],
+                  }}
+                  transition={{
+                    duration: 5,
+                    repeat: Infinity,
+                    delay: i * 2.5,
+                    ease: "easeOut",
+                  }}
+              />
+          ))}
+
+        </motion.div>
+      </div>
   );
 }
