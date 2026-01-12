@@ -19,12 +19,12 @@ export function Terminal({ isOpen, onToggle, output, exitCode }: TerminalProps) 
     { id: 'debug', label: 'Debug Console' },
   ];
 
-  
+
   if (!isOpen) {
     return (
       <button
         onClick={onToggle}
-        className="absolute bottom-0 left-0 right-0 h-8 bg-[#0f0f0f] border-t border-white/5 hover:bg-[#1a1a1a] transition-colors flex items-center justify-center gap-2 text-sm text-white/60 hover:text-white/90"
+        className="w-full h-8 bg-[#0f0f0f] border-t border-white/5 hover:bg-[#1a1a1a] transition-colors flex items-center justify-center gap-2 text-sm text-white/60 hover:text-white/90"
       >
         <TerminalIcon className="w-4 h-4" />
         Show Terminal
@@ -69,11 +69,10 @@ export function Terminal({ isOpen, onToggle, output, exitCode }: TerminalProps) 
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-2 ${
-                activeTab === tab.id
+              className={`px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-2 ${activeTab === tab.id
                   ? 'bg-[#0a0a0a] text-white'
                   : 'text-white/60 hover:text-white/90 hover:bg-white/5'
-              }`}
+                }`}
             >
               {tab.label}
               {tab.count !== undefined && tab.count > 0 && (
@@ -94,8 +93,8 @@ export function Terminal({ isOpen, onToggle, output, exitCode }: TerminalProps) 
       </div>
 
       {/* Terminal content */}
-            {/* Terminal content */}
-            <div className="flex-1 overflow-auto p-4 font-mono text-sm">
+      {/* Terminal content */}
+      <div className="flex-1 overflow-auto p-4 font-mono text-sm">
         {activeTab === 'terminal' && (
           <div className="space-y-2">
             {exitCode !== null && (

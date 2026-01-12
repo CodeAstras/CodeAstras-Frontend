@@ -49,6 +49,7 @@ export default function Workspace() {
   const [runExitCode, setRunExitCode] = useState<number | null>(null);
 
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(250);
 
   type RightTool = "video" | "chat" | "collaborators" | "ai" | "settings";
   const [activeTool, setActiveTool] = useState<RightTool>("video");
@@ -77,21 +78,21 @@ export default function Workspace() {
   };
 
   const saveFile = async (content: string) => {
-  if (!projectId || !activeFile) return;
+    if (!projectId || !activeFile) return;
 
-  setFileContent(content);
+    setFileContent(content);
 
-  await api.put(
-    `/projects/${projectId}/file`,
-    content,
-    {
-      params: { path: activeFile },
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    }
-  );
-};
+    await api.put(
+      `/projects/${projectId}/file`,
+      content,
+      {
+        params: { path: activeFile },
+        headers: {
+          "Content-Type": "text/plain",
+        },
+      }
+    );
+  };
 
 
   const createEntry = async (path: string, type: "FILE" | "FOLDER") => {
@@ -125,7 +126,7 @@ export default function Workspace() {
     loadTree();
   }, [projectId]);
 
-  // Resize handler
+  // Resize handler - RIGHT
   const handleRightDragMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -134,8 +135,31 @@ export default function Workspace() {
     document.body.style.cursor = "col-resize";
 
     const onMove = (ev: MouseEvent) => {
-      const delta = startX - ev.clientX;
-      setRightPanelWidth(Math.min(Math.max(startWidth + delta, 260), 520));
+      const delta = startX - ev.clientX; // Dragging left increases width
+      setRightPanelWidth(Math.min(Math.max(startWidth + delta, 260), 600));
+    };
+
+    const onUp = () => {
+      document.body.style.cursor = "default";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  // Resize handler - LEFT
+  const handleLeftDragMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = leftPanelWidth;
+
+    document.body.style.cursor = "col-resize";
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientX - startX; // Dragging right increases width
+      setLeftPanelWidth(Math.min(Math.max(startWidth + delta, 200), 500));
     };
 
     const onUp = () => {
@@ -159,13 +183,21 @@ export default function Workspace() {
           </div>
 
           {fileExplorerOpen && (
-            <FileExplorer
-              tree={fileTree}
-              onSelect={openFile}
-              onCreate={createEntry}
-              onDelete={deleteEntry}
-              onClose={() => setFileExplorerOpen(false)}
-            />
+            <div style={{ width: leftPanelWidth }} className="flex-shrink-0 flex">
+              <div className="flex-1 overflow-hidden">
+                <FileExplorer
+                  tree={fileTree}
+                  onSelect={openFile}
+                  onCreate={createEntry}
+                  onDelete={deleteEntry}
+                  onClose={() => setFileExplorerOpen(false)}
+                />
+              </div>
+              <div
+                className="w-1 cursor-col-resize hover:bg-white/20 active:bg-blue-500/50 transition-colors"
+                onMouseDown={handleLeftDragMouseDown}
+              />
+            </div>
           )}
 
           <div className="flex-1 min-w-0 flex flex-col">
@@ -200,7 +232,7 @@ export default function Workspace() {
         </div>
 
         <div
-          className="w-1 cursor-col-resize bg-white/5 hover:bg-white/20"
+          className="w-1 cursor-col-resize bg-white/5 hover:bg-white/20 active:bg-blue-500/50 transition-colors"
           onMouseDown={handleRightDragMouseDown}
         />
 
@@ -209,7 +241,7 @@ export default function Workspace() {
           style={{ width: rightPanelWidth }}
         >
           <div className="flex-1 overflow-hidden">
-            {activeTool === "video" && <VideoPanel mode="video" onModeChange={() => {}} />}
+            {activeTool === "video" && <VideoPanel mode="video" onModeChange={() => { }} />}
             {activeTool === "chat" && <ChatPanel />}
             {activeTool === "collaborators" && <ParticipantsList />}
             {activeTool === "ai" && <div className="p-4 text-white/70">AI Assistant</div>}

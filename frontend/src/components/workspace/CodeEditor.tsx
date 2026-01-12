@@ -2,8 +2,23 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import Editor, { OnMount, loader } from "@monaco-editor/react";
-import * as monaco from 'monaco-editor';
+import * as monaco from "monaco-editor";
 
+// Explicitly import language contributions to ensure highlighting works
+// 1. Basic Languages (Highlighting only)
+import 'monaco-editor/esm/vs/basic-languages/python/python.contribution';
+import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution';
+import 'monaco-editor/esm/vs/basic-languages/java/java.contribution';
+import 'monaco-editor/esm/vs/basic-languages/go/go.contribution';
+import 'monaco-editor/esm/vs/basic-languages/rust/rust.contribution';
+
+// 2. Smart Languages (Highlighting + IntelliSense) - these live in vs/language
+import 'monaco-editor/esm/vs/language/json/monaco.contribution';
+import 'monaco-editor/esm/vs/language/css/monaco.contribution';
+import 'monaco-editor/esm/vs/language/html/monaco.contribution';
+import 'monaco-editor/esm/vs/language/typescript/monaco.contribution'; // Handles both TS and JS
+
+// Import workers
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
@@ -15,6 +30,7 @@ import { connectRunSocket, sendRunRequest } from "../../services/wsRun";
 import { CodeEditMessage, RunCodeBroadcastMessage } from "../../types/wsTypes";
 import { startSession } from "../../services/session";
 
+// Configure Monaco Environment for Vite
 self.MonacoEnvironment = {
   getWorker(_, label) {
     if (label === 'json') {
@@ -33,6 +49,7 @@ self.MonacoEnvironment = {
   },
 };
 
+// Force use of local monaco instance
 loader.config({ monaco });
 
 interface JwtPayload {
@@ -205,8 +222,23 @@ export default function CodeEditor({
   }, [runSignal]);
 
   // --------------------------------------------------
-  // Editor theme
+  // Constants & Theme
   // --------------------------------------------------
+
+  const handleEditorChange = (value: string | undefined) => {
+    const val = value || "";
+    onChange(val);
+
+    if (projectId && filePath && userId !== "unknown-user") {
+      codeWs.sendEdit(projectId, {
+        projectId,
+        userId,
+        path: filePath,
+        content: val
+      });
+    }
+  };
+
   const handleEditorMount: OnMount = (editor, monaco) => {
     monaco.editor.defineTheme("codeastra-dark", {
       base: "vs-dark",
@@ -221,31 +253,9 @@ export default function CodeEditor({
         "editor.background": "#000000",
       },
     });
-
     monaco.editor.setTheme("codeastra-dark");
   };
 
-  const handleEditorChange = (value: string | undefined) => {
-    const val = value || "";
-
-    // 1. Update local state & Save to REST API
-    onChange(val);
-
-    // 2. Broadcast to other collaborators via WebSocket
-    // Only if we have a valid project, file, and user
-    if (projectId && filePath && userId !== "unknown-user") {
-      codeWs.sendEdit(projectId, {
-        projectId,
-        userId,
-        path: filePath,
-        content: val
-      });
-    }
-  };
-
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
   if (!filePath) {
     return (
       <div className="flex h-full items-center justify-center text-white/40 text-sm">
@@ -299,6 +309,7 @@ export default function CodeEditor({
           </div>
 
           <Editor
+            key={filePath} // FORCE REMOUNT on file change to ensure language/content load correctly
             height="100%"
             path={filePath} // Helps Monaco with intellisense model URI
             defaultLanguage="plaintext"

@@ -3,8 +3,12 @@ import SockJS from "sockjs-client";
 import { RunCodeBroadcastMessage, RunCodeRequestWS } from "../types/wsTypes";
 
 let runClient: Client | null = null;
+let currentOutputCallback: ((msg: RunCodeBroadcastMessage) => void) | null = null;
 
 export function connectRunSocket(projectId: string, onOutput: (msg: RunCodeBroadcastMessage) => void) {
+    // ALWAYS update the callback to the latest component instance
+    currentOutputCallback = onOutput;
+
     if (runClient?.active) return;
 
     const token = localStorage.getItem("access_token");
@@ -30,12 +34,9 @@ export function connectRunSocket(projectId: string, onOutput: (msg: RunCodeBroad
                     const msg = JSON.parse(frame.body);
                     console.log("🔥 PARSED RUN MESSAGE:", msg);
 
-                    // If a run finished with null output, log a diagnostic so we can investigate
-                    if (msg.type === 'RUN_FINISHED' && (msg.output === null || msg.output === undefined)) {
-                        console.warn('⚠️ RUN_FINISHED received with null/undefined output for session:', msg.sessionId, 'triggeredBy:', msg.triggeredBy);
+                    if (currentOutputCallback) {
+                        currentOutputCallback(msg);
                     }
-
-                    onOutput(msg);
                 } catch (err) {
                     console.error("❌ Error parsing run output:", err, "frame:", frame);
                 }
