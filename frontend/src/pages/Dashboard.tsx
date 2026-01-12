@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { CosmicStars } from "../components/workspace/CosmicStars";
 import { QuickCreateModal } from "../components/modals/QuickCreateModal";
+import { NotificationBell } from "../components/NotificationBell";
 
 type DashboardProject = {
     id: string;
@@ -102,7 +103,7 @@ export default function Dashboard() {
             const created = jsonResponse || {};
             console.log("✅ Project created successfully:", created);
 
-            navigate(`/CodeEditor/${created.id}`);
+            navigate(`/editor/${created.id}`);
         } catch (err: any) {
             // 8️⃣ Final catch-all with detailed console log
             console.error("🔥 Create project error (caught):", err);
@@ -111,62 +112,58 @@ export default function Dashboard() {
     };
 
 
-    //in this there is a issue of getting NA in updated time solve this.
-    useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                setLoadingProjects(true);
-                setProjectsError(null);
+    const fetchProjects = async () => {
+        try {
+            setLoadingProjects(true);
+            setProjectsError(null);
 
-                const token = localStorage.getItem("access_token");
-                if (!token) {
-                    throw new Error("No access token found. Please log in again.");
-                }
-
-                const res = await fetch("http://localhost:8080/api/projects", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (!res.ok) {
-                    const text = await res.text().catch(() => "");
-                    throw new Error(`Failed to fetch projects (${res.status}): ${text}`);
-                }
-
-                const data = await res.json(); // this is List<ProjectResponse>
-                console.log("[Dashboard] sample project from API:", data[0]);
-
-
-                // Map backend shape → UI shape
-                const mapped: DashboardProject[] = data.map((p: any) => ({
-                    id: p.id,
-                    name: p.name,
-                    language: p.language || "Unknown",
-                    // prefer camelCase from backend, fall back to snake_case just in case
-                    updatedAt: p.updatedAt || p.updated_at || p.createdAt || p.created_at || "",
-                }));
-
-
-
-                // sort newest first
-                mapped.sort((a, b) =>
-                    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-                );
-
-
-                setProjects(mapped);
-
-            } catch (err: any) {
-                console.error("Fetch projects error:", err);
-                setProjectsError(err.message || "Failed to fetch projects");
-            } finally {
-                setLoadingProjects(false);
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                // Sillent failure or redirect? Dashboard is protected so token should exist
+                console.error("No access token found in Dashboard");
+                setProjectsError("No access token");
+                return;
             }
-        };
 
+            const res = await fetch("http://localhost:8080/api/projects", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) {
+                const text = await res.text().catch(() => "");
+                throw new Error(`Failed to fetch projects (${res.status}): ${text}`);
+            }
+
+            const data = await res.json(); // this is List<ProjectResponse>
+
+            // Map backend shape → UI shape
+            const mapped: DashboardProject[] = data.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                language: p.language || "Unknown",
+                updatedAt: p.updatedAt || p.updated_at || p.createdAt || p.created_at || "",
+            }));
+
+            // sort newest first
+            mapped.sort((a, b) =>
+                new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+            );
+
+            setProjects(mapped);
+
+        } catch (err: any) {
+            console.error("Fetch projects error:", err);
+            setProjectsError(err.message || "Failed to fetch projects");
+        } finally {
+            setLoadingProjects(false);
+        }
+    };
+
+    useEffect(() => {
         fetchProjects();
     }, []);
 
@@ -268,10 +265,7 @@ export default function Dashboard() {
 
                     {/* Right Icons */}
                     <div className="flex items-center gap-3">
-                        <button className="relative p-2 rounded-lg hover:bg:white/5 transition-colors">
-                            <Bell className="w-5 h-5 text-white/60" />
-                            <div className="absolute top-1 right-1 w-2 h-2 bg-[#0ea5e9] rounded-full animate-pulse" />
-                        </button>
+                        <NotificationBell onInviteAction={fetchProjects} />
                         <button
                             type="button"
                             onClick={() => navigate('/profile')}

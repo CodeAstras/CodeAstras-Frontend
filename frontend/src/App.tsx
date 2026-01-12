@@ -11,6 +11,10 @@ import Signup from "./pages/Signup";
 import RequireAuth from "./auth/RequireAuth";
 import OAuthSuccessPage from "./pages/0AuthSuccessPage";
 import CodeEditor from "./components/workspace/CodeEditor";
+import { Outlet } from "react-router-dom";
+import { CollaborationProvider } from "./context/CollaborationContext";
+import { VoiceProvider } from "./context/VoiceContext";
+import { VoiceControlPanel } from "./components/workspace/VoiceControlPanel";
 
 
 
@@ -20,49 +24,27 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/workspace/:projectId" element={<Workspace />} />
 
 
-        <Route
-          path="/dashboard"
-          element={
-            <RequireAuth>
-              <Dashboard />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/workspace"
-          element={
-            <RequireAuth>
-              <Workspace />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/room"
-          element={
-            <RequireAuth>
-              <MeetingRoom />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/team"
-          element={
-            <RequireAuth>
-              <TeamWorkspace />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <RequireAuth>
-              <Profile />
-            </RequireAuth>
-          }
-        />
+        {/* Authenticated Routes with Collaboration Provider */}
+        <Route element={
+          <RequireAuth>
+            <CollaborationProvider>
+              <VoiceProvider>
+                <Outlet />
+                <VoiceControlPanel />
+              </VoiceProvider>
+            </CollaborationProvider>
+          </RequireAuth>
+        }>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/workspace" element={<Workspace />} />
+          <Route path="/workspace/:projectId" element={<Workspace />} />
+          <Route path="/room" element={<MeetingRoom />} />
+          <Route path="/team" element={<TeamWorkspace />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/editor/:projectId" element={<Workspace />} />
+        </Route>
 
         {/* Auth (public) */}
         <Route path="/login" element={<Login />} />
@@ -70,9 +52,6 @@ export default function App() {
 
         {/* OAuth callback (public) */}
         <Route path="/oauth-success" element={<OAuthSuccessPage />} />
-
-        {/* Dynamic project route */}
-        <Route path="/editor/:projectId" element={<Workspace />} />
       </Routes>
     </BrowserRouter>
   );

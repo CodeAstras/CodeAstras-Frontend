@@ -1,24 +1,28 @@
 import { UserPlus, Crown, Code, Eye } from 'lucide-react';
-
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { useCollab } from '../../context/CollaborationContext';
+import { collabApi } from '../../services/collabApi';
+import { toast } from 'sonner';
 
 export function ParticipantsList() {
-  const [participants, setParticipants] = useState([
-    { id: 1, name: 'You', avatar: 'YO', role: 'Owner', status: 'online', color: '#B043FF' },
-    { id: 2, name: 'Alex Chen', avatar: 'AC', role: 'Editor', status: 'online', color: '#2BCBFF' },
-    { id: 3, name: 'Sarah Kim', avatar: 'SK', role: 'Editor', status: 'online', color: '#3DF6FF' },
-    { id: 4, name: 'Mike Ross', avatar: 'MR', role: 'Viewer', status: 'away', color: '#666' },
-  ]);
+  const { projectId } = useParams();
+  const { currentCollaborators, refreshCollaborators } = useCollab();
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteInput, setInviteInput] = useState('');
-  const [inviteRole, setInviteRole] = useState('Collaborator');
+  const [inviteRole, setInviteRole] = useState<'COLLABORATOR' | 'VIEWER'>('COLLABORATOR');
+  const [isInviting, setInviting] = useState(false);
 
-  // Helper to generate avatar from name
-  const getAvatar = (name: string) => {
-    const parts = name.split(' ');
-    return parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2).toUpperCase();
+  useEffect(() => {
+    if (projectId) {
+      refreshCollaborators(projectId);
+    }
+  }, [projectId, refreshCollaborators]);
+
+  // Helper to generate avatar from email/name
+  const getAvatar = (email: string) => {
+    return email.substring(0, 2).toUpperCase();
   };
 
   // Helper to generate color (simple hash)
@@ -29,97 +33,108 @@ export function ParticipantsList() {
     return colors[hash % colors.length];
   };
 
-  const handleAddCollaborator = () => {
-    if (!inviteInput) return;
-    setParticipants([
-      ...participants,
-      {
-        id: Date.now(),
-        name: inviteInput,
-        avatar: getAvatar(inviteInput),
-        role: inviteRole === 'Collaborator' ? 'Editor' : 'Viewer',
-        status: 'online',
-        color: getColor(inviteInput),
-      },
-    ]);
-    setInviteInput('');
-    setInviteRole('Collaborator');
-    setShowInvite(false);
+  const handleInvite = async () => {
+    if (!inviteInput || !projectId) {
+      toast.error("Please enter an email");
+      return;
+    }
+
+    try {
+      setInviting(true);
+      await collabApi.inviteCollaborator(projectId, inviteInput);
+      toast.success(`Invite sent to ${inviteInput}`);
+      setInviteInput('');
+      setShowInvite(false);
+    } catch (error: any) {
+      console.error("Invite failed", error);
+      toast.error(error.message || "Failed to send invite");
+    } finally {
+      setInviting(false);
+    }
   };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'Owner':
-        return <Crown className="w-3 h-3" />;
-      case 'Editor':
-        return <Code className="w-3 h-3" />;
-      case 'Viewer':
-        return <Eye className="w-3 h-3" />;
+      case 'OWNER':
+        return <Crown className="w-3 h-3 text-yellow-500" />;
+      case 'COLLABORATOR':
+        return <Code className="w-3 h-3 text-blue-400" />;
+      case 'VIEWER':
+        return <Eye className="w-3 h-3 text-gray-400" />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="border-b border-white/5 bg-[#0f0f0f]">
+    <div className="border-b border-white/5 bg-[#0f0f0f] h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-        <div className="text-sm text-white/90">Project Alpha</div>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
+        <div className="text-sm text-white/90">Project Collaborators</div>
         <button className="p-2 hover:bg-white/10 rounded transition-colors" title="Invite user" onClick={() => setShowInvite(true)}>
           <UserPlus className="w-4 h-4 text-white/60" />
         </button>
       </div>
 
       {/* Participants list */}
-      <div className="p-2 space-y-1 max-h-64 overflow-y-auto">
-        {participants.map((participant) => (
-          <div
-            key={participant.id}
-            className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group"
-          >
-            {/* Avatar */}
-            <div className="relative">
+      <div className="p-2 space-y-1 overflow-y-auto flex-1">
+        {(!Array.isArray(currentCollaborators) || currentCollaborators.length === 0) ? (
+          <div className="text-center text-white/30 py-4 text-xs">No collaborators yet</div>
+        ) : (
+
+          currentCollaborators.map((participant) => {
+            if (!participant) return null; // Safe guard
+            const email = participant.email || "Unknown User";
+            const color = getColor(email);
+            return (
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center border-2 text-sm"
-                style={{
-                  backgroundColor: `${participant.color}20`,
-                  borderColor: participant.color,
-                  color: participant.color,
-                  fontWeight: '600'
-                }}
+                key={participant.userId || email}
+                className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group"
               >
-                {participant.avatar}
-              </div>
-              
-              {/* Status indicator */}
-              <div
-                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0f0f0f] ${
-                  participant.status === 'online' ? 'bg-green-500' : 'bg-yellow-500'
-                }`}
-              />
-            </div>
+                {/* Avatar */}
+                <div className="relative">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center border text-xs"
+                    style={{
+                      backgroundColor: `${color}20`,
+                      borderColor: color,
+                      color: color,
+                      fontWeight: '600'
+                    }}
+                  >
+                    {getAvatar(email)}
+                  </div>
 
-            {/* Name and role */}
-            <div className="flex-1 min-w-0">
-              <div className="text-sm truncate text-white/90">{participant.name}</div>
-              <div className="flex items-center gap-1.5 text-xs text-white/60">
-                {getRoleIcon(participant.role)}
-                <span>{participant.role}</span>
-              </div>
-            </div>
+                  {/* Status indicator - Mock for now unless linked to VoiceContext or OnlineStatusContext */}
+                  <div
+                    className="absolute bottom-0 right-0 w-2 h-2 rounded-full border border-[#0f0f0f] bg-green-500"
+                  />
+                </div>
 
-            {/* Quick actions */}
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="p-1.5 hover:bg-white/10 rounded text-xs text-white/60 hover:text-white">
-                ···
-              </button>
-            </div>
-          </div>
-        ))}
+                {/* Name and role */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm truncate text-white/90">{participant.email}</div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-white/60 uppercase">
+                    {getRoleIcon(participant.role)}
+                    <span>{participant.role}</span>
+                    {participant.status === 'PENDING' && <span className="text-orange-400">(Pending)</span>}
+                  </div>
+                </div>
+
+                {/* Quick actions (admin only ideally) */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button className="p-1 hover:bg-white/10 rounded text-xs text-white/60 hover:text-white">
+                    ···
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Invite button */}
-      <div className="p-3 border-t border-white/5">
+      <div className="p-3 border-t border-white/5 flex-shrink-0">
         <button
           className="w-full px-4 py-2 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all duration-300 text-sm flex items-center justify-center gap-2"
           onClick={() => setShowInvite(true)}
@@ -131,31 +146,31 @@ export function ParticipantsList() {
 
       {/* Invite Modal */}
       {showInvite && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#18181b] rounded-xl shadow-lg p-6 w-80 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#18181b] rounded-xl shadow-2xl border border-white/10 p-6 w-80 relative">
             <button className="absolute top-2 right-2 text-white/50 hover:text-white" onClick={() => setShowInvite(false)}>&times;</button>
             <div className="mb-4 text-lg font-semibold text-white">Invite to Workspace</div>
             <div className="space-y-3">
               <input
                 className="w-full px-3 py-2 rounded bg-[#23232b] text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#7c3aed]"
-                placeholder="Email or Username"
+                placeholder="Email address"
                 value={inviteInput}
                 onChange={e => setInviteInput(e.target.value)}
               />
               <select
-                className="w-full px-3 py-2 rounded bg-[#23232b] text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#7c3aed] appearance-none"
-                style={{ backgroundColor: '#23232b' }}
+                className="w-full px-3 py-2 rounded bg-[#23232b] text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#7c3aed]"
                 value={inviteRole}
-                onChange={e => setInviteRole(e.target.value)}
+                onChange={e => setInviteRole(e.target.value as any)}
               >
-                <option className="bg-[#23232b] text-white" value="Collaborator">Collaborator</option>
-                <option className="bg-[#23232b] text-white" value="Viewer">Viewer</option>
+                <option value="COLLABORATOR">Collaborator</option>
+                <option value="VIEWER">Viewer</option>
               </select>
               <button
-                className="w-full mt-2 px-4 py-2 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all duration-300 text-sm font-semibold text-white"
-                onClick={handleAddCollaborator}
+                disabled={isInviting}
+                className="w-full mt-2 px-4 py-2 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all duration-300 text-sm font-semibold text-white disabled:opacity-50"
+                onClick={handleInvite}
               >
-                Add
+                {isInviting ? "Sending..." : "Send Invite"}
               </button>
             </div>
           </div>
