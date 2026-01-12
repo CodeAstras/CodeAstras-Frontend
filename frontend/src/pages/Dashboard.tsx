@@ -246,7 +246,7 @@ export default function Dashboard() {
                         </div>
                         <span
                             className="text-xl font-semibold bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] bg-clip-text text-transparent">
-                            CodeAstra
+                            CodeAstras
                         </span>
                     </button>
 
@@ -301,8 +301,8 @@ export default function Dashboard() {
 
                         <div className="relative z-10 flex items-center justify-between">
                             <div className="flex-1">
-                                <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from:white via:white to-white/70 bg-clip-text text-transparent">
-                                    Welcome to CodeAstra
+                                <h1 className="text-5xl font-bold mb-3 text-white">
+                                    Welcome to CodeAstras
                                 </h1>
                                 <p className="text-xl text-white/60 mb-8">
                                     Your collaborative coding workspace in the cloud

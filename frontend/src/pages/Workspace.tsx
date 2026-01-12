@@ -55,7 +55,7 @@ export default function Workspace() {
 
   const location = useLocation();
   const state = location.state as { projectName?: string } | null;
-  const projectName = state?.projectName ?? "CodeAstra";
+  const projectName = state?.projectName ?? "CodeAstras";
 
   // ---------------- API calls ----------------
 

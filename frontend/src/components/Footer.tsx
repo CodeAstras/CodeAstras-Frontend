@@ -41,13 +41,13 @@ export function Footer() {
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 via-purple-500/20 to-cyan-400/20 blur-xl" />
                 <h3 className="relative text-2xl md:text-3xl tracking-wider bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                  CodeAstra
+                  CodeAstras
                 </h3>
               </div>
               <p className="text-sm md:text-base text-gray-400 max-w-sm">
                 Your collaborative coding universe. Build together, ship faster, create boundlessly.
               </p>
-              
+
               {/* Social links */}
               <div className="flex gap-3">
                 {socialLinks.map((social, index) => (
@@ -95,7 +95,7 @@ export function Footer() {
           <div className="pt-6 border-t border-white/10">
             <div className="text-center">
               <p className="text-xs md:text-sm text-gray-400">
-                © 2025 CodeAstra. All rights reserved.
+                © 2025 CodeAstras. All rights reserved.
               </p>
             </div>
           </div>

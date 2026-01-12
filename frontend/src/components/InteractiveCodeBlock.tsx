@@ -21,8 +21,8 @@ export function InteractiveCodeBlock() {
                 i % 3 === 0
                   ? "rgba(0, 229, 255, 0.4)"
                   : i % 3 === 1
-                  ? "rgba(168, 85, 247, 0.4)"
-                  : "rgba(236, 72, 153, 0.4)",
+                    ? "rgba(168, 85, 247, 0.4)"
+                    : "rgba(236, 72, 153, 0.4)",
               boxShadow: "0 0 10px currentColor",
             }}
             animate={{
@@ -63,17 +63,15 @@ export function InteractiveCodeBlock() {
         {/* Tabs */}
         <div className="flex justify-center mb-8 md:mb-12">
           <button
-            className={`px-4 py-2 md:px-6 md:py-3 rounded-lg ${
-              activeTab === 0 ? "bg-gradient-to-r from-cyan-400 to-purple-600 text-white" : "bg-gray-100 text-gray-500"
-            }`}
+            className={`px-4 py-2 md:px-6 md:py-3 rounded-lg ${activeTab === 0 ? "bg-gradient-to-r from-cyan-400 to-purple-600 text-white" : "bg-gray-100 text-gray-500"
+              }`}
             onClick={() => setActiveTab(0)}
           >
             Collaborative Session
           </button>
           <button
-            className={`px-4 py-2 md:px-6 md:py-3 rounded-lg ${
-              activeTab === 1 ? "bg-gradient-to-r from-cyan-400 to-purple-600 text-white" : "bg-gray-100 text-gray-500"
-            }`}
+            className={`px-4 py-2 md:px-6 md:py-3 rounded-lg ${activeTab === 1 ? "bg-gradient-to-r from-cyan-400 to-purple-600 text-white" : "bg-gray-100 text-gray-500"
+              }`}
             onClick={() => setActiveTab(1)}
           >
             Real-time Sync
@@ -116,7 +114,7 @@ export function InteractiveCodeBlock() {
               <code>
                 <span className="text-gray-500">// Real-time collaboration in action</span>
                 {"\n"}
-                <span className="text-purple-400">const</span> <span className="text-cyan-400">session</span> = <span className="text-purple-400">await</span> <span className="text-blue-400">CodeAstra</span>.<span className="text-yellow-400">join</span>({"{"}
+                <span className="text-purple-400">const</span> <span className="text-cyan-400">session</span> = <span className="text-purple-400">await</span> <span className="text-blue-400">CodeAstras</span>.<span className="text-yellow-400">join</span>({"{"}
                 {"\n  "}
                 <span className="text-cyan-400">room</span>: <span className="text-green-400">"cosmic-coders"</span>,
                 {"\n  "}

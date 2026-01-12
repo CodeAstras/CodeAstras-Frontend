@@ -3,7 +3,6 @@ import {
     HeroSection,
     FeaturesGallery,
     InteractiveCodeBlock,
-    CollaborationNebula,
     PricingSection,
     Footer,
     CosmicBackground,
@@ -25,7 +24,6 @@ export default function LandingPage() {
                 <HeroSection />
                 <FeaturesGallery />
                 <InteractiveCodeBlock />
-                <CollaborationNebula />
                 <PricingSection />
                 <Footer />
             </div>

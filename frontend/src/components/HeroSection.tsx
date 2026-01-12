@@ -39,7 +39,7 @@ export function HeroSection() {
                   <span className="relative inline-block">
                     <span className="absolute inset-0 blur-xl bg-gradient-to-r from-cyan-400 to-purple-600 opacity-15" />
                     <span className="relative bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                      CodeAstra
+                      CodeAstras
                     </span>
                   </span>
                 </span>
@@ -64,8 +64,8 @@ export function HeroSection() {
               transition={{ delay: 0.7 }}
             >
               <p className="text-base md:text-lg text-gray-300 leading-relaxed max-w-xl">
-                Experience the future of development. CodeAstra brings real-time teamwork, 
-                cloud-native coding, and next-gen collaboration into one cosmic workspace. 
+                Experience the future of development. CodeAstras brings real-time teamwork,
+                cloud-native coding, and next-gen collaboration into one cosmic workspace.
                 Build together, ship faster, create boundlessly.
               </p>
             </motion.div>
@@ -118,13 +118,13 @@ export function HeroSection() {
               >
                 {/* Animated gradient background */}
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite]" />
-                
+
                 {/* Glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-600 blur-2xl opacity-50 group-hover:opacity-75 transition-opacity" />
-                
+
                 {/* Button content */}
                 <span className="relative z-10 flex items-center gap-3 text-base md:text-lg text-white">
-                  Launch into CodeAstra
+                  Launch into CodeAstras
                   <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
                 </span>
               </motion.button>

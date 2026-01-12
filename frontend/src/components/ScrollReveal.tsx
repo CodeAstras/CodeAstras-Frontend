@@ -7,14 +7,16 @@ interface ScrollRevealProps {
   delay?: number;
   scale?: boolean;
   rotate?: boolean;
+  className?: string;
 }
 
-export function ScrollReveal({ 
-  children, 
-  direction = "up", 
+export function ScrollReveal({
+  children,
+  direction = "up",
   delay = 0,
   scale = false,
-  rotate = false 
+  rotate = false,
+  className = ""
 }: ScrollRevealProps) {
   const getInitialPosition = () => {
     switch (direction) {
@@ -46,6 +48,7 @@ export function ScrollReveal({
 
   return (
     <motion.div
+      className={className}
       initial={initial}
       whileInView={whileInView}
       viewport={{ once: true, margin: "-100px" }}

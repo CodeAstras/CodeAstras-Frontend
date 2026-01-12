@@ -188,7 +188,7 @@ html {
   font-size: var(--font-size);
 }
 
-/* Custom animations for CodeAstra */
+/* Custom animations for CodeAstras */
 @keyframes shimmer {
   0% {
     background-position: 200% 0;

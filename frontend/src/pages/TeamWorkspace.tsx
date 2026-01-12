@@ -155,7 +155,7 @@ export default function TeamWorkspace() {
     <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden">
       {/* Cosmic background */}
       <CosmicStars />
-      
+
       {/* Subtle background gradients */}
       <div className="fixed inset-0 pointer-events-none opacity-10">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#7c3aed] rounded-full blur-[150px]" />
@@ -178,7 +178,7 @@ export default function TeamWorkspace() {
                 </div>
                 <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#0ea5e9] blur-md opacity-50" />
               </div>
-              <span className="text-sm text-white/60">CodeAstra</span>
+              <span className="text-sm text-white/60">CodeAstras</span>
             </button>
 
             <div className="w-px h-6 bg-white/10" />
@@ -213,11 +213,10 @@ export default function TeamWorkspace() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as TabView)}
-                  className={`relative px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${
-                    activeTab === tab.id
+                  className={`relative px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
                       ? 'text-white'
                       : 'text-white/60 hover:text-white/90 hover:bg:white/5'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="text-sm font-medium">{tab.label}</span>
@@ -268,7 +267,7 @@ export default function TeamWorkspace() {
                     <UserPlus className="w-4 h-4" />
                     Invite Member
                   </button>
-                  <button 
+                  <button
                     onClick={() => navigate('/room')}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg:white/5 transition-all text-sm text-white/80"
                   >
@@ -308,7 +307,7 @@ export default function TeamWorkspace() {
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-xs text-green-400">3 members active</span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => navigate('/room')}
                     className="w-full px-3 py-2 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all"
                   >
@@ -392,11 +391,10 @@ export default function TeamWorkspace() {
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-lg font-semibold">{project.name}</h3>
                             <div
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                project.status === 'active'
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${project.status === 'active'
                                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                   : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                              }`}
+                                }`}
                             >
                               {project.status}
                             </div>
@@ -443,7 +441,7 @@ export default function TeamWorkspace() {
                             {project.activeMembers} active
                           </div>
                         </div>
-                        <button 
+                        <button
                           onClick={() => navigate('/workspace')}
                           className="px-4 py-2 bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border border-[#7c3aed]/30 rounded-lg text-sm hover:from-[#7c3aed]/30 hover:to-[#0ea5e9]/30 transition-all"
                         >
@@ -502,7 +500,7 @@ export default function TeamWorkspace() {
                   <p className="text-white/40 mb-6 max-w-md">
                     Full-featured IDE with real-time collaboration, version control, and terminal access
                   </p>
-                  <button 
+                  <button
                     onClick={() => navigate('/workspace')}
                     className="px-6 py-3 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all"
                   >
@@ -674,9 +672,8 @@ export default function TeamWorkspace() {
                             {member.avatar}
                           </div>
                           <div
-                            className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#0f0f0f] ${
-                              member.status === 'online' ? 'bg-green-500' : 'bg-white/20'
-                            }`}
+                            className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#0f0f0f] ${member.status === 'online' ? 'bg-green-500' : 'bg-white/20'
+                              }`}
                           />
                         </div>
                         <div className="flex-1">

@@ -28,7 +28,7 @@ import {
   Moon,
   Github,
   ChevronRight,
-  Edit3, 
+  Edit3,
   Camera,
 } from 'lucide-react';
 import { CosmicStars } from "../components/workspace/CosmicStars";
@@ -162,7 +162,7 @@ export default function Profile() {
               </div>
               <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#0ea5e9] blur-md opacity-50" />
             </div>
-            <span className="text-sm text-white/60">CodeAstra</span>
+            <span className="text-sm text-white/60">CodeAstras</span>
           </button>
 
           <div className="flex items-center gap-4">
@@ -203,11 +203,10 @@ export default function Profile() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-                    activeTab === item.id
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === item.id
                       ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border border-[#7c3aed]/50 text-white'
                       : 'text-white/60 hover:bg-white/5 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
@@ -409,11 +408,10 @@ export default function Profile() {
                   return (
                     <div
                       key={badge.id}
-                      className={`relative bg-[#0f0f0f] border rounded-2xl p-6 transition-all duration-300 group ${
-                        badge.unlocked
+                      className={`relative bg-[#0f0f0f] border rounded-2xl p-6 transition-all duration-300 group ${badge.unlocked
                           ? 'border-white/10 hover:border-white/30 cursor-pointer'
                           : 'border-white/5 opacity-50'
-                      }`}
+                        }`}
                     >
                       {/* Lock overlay for locked badges */}
                       {!badge.unlocked && (
@@ -707,7 +705,7 @@ export default function Profile() {
                   <Palette className="w-8 h-8 text-[#7c3aed]" />
                   Preferences
                 </h1>
-                <p className="text-white/60">Customize your CodeAstra experience</p>
+                <p className="text-white/60">Customize your CodeAstras experience</p>
               </div>
 
               {/* Editor Preferences */}
@@ -720,11 +718,10 @@ export default function Profile() {
                       {['Dark', 'Neon', 'Cosmic'].map((theme) => (
                         <button
                           key={theme}
-                          className={`p-4 rounded-xl border transition-all ${
-                            theme === 'Dark'
+                          className={`p-4 rounded-xl border transition-all ${theme === 'Dark'
                               ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border-[#7c3aed]/50'
                               : 'bg-white/5 border-white/10 hover:border-white/30'
-                          }`}
+                            }`}
                         >
                           {theme}
                         </button>
@@ -759,11 +756,10 @@ export default function Profile() {
                       {[2, 4, 8].map((size) => (
                         <button
                           key={size}
-                          className={`flex-1 py-2 rounded-lg border transition-all ${
-                            size === 2
+                          className={`flex-1 py-2 rounded-lg border transition-all ${size === 2
                               ? 'bg-[#7c3aed]/20 border-[#7c3aed]/50 text-white'
                               : 'bg-white/5 border-white/10 text-white/60 hover:border-white/30'
-                          }`}
+                            }`}
                         >
                           {size}
                         </button>

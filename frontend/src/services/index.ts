@@ -2,7 +2,6 @@ export { Header } from '../components/Header';
 export { HeroSection } from '../components/HeroSection';
 export { FeaturesGallery } from '../components/FeaturesGallery';
 export { InteractiveCodeBlock } from '../components/InteractiveCodeBlock';
-export { CollaborationNebula } from '../components/CollaborationNebula';
 export { PricingSection } from '../components/PricingSection';
 export { Footer } from '../components/Footer';
 export { CosmicBackground } from '../components/CosmicBackground';

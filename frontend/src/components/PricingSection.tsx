@@ -8,7 +8,7 @@ const plans = [
     name: "Stardust",
     icon: Star,
     tagline: "Perfect for Getting Started",
-    price: "Free",
+    price: "Coming Soon",
     priceDetail: "Forever",
     gradient: "from-cyan-400 to-blue-500",
     glowColor: "rgba(0, 229, 255, 0.3)",
@@ -29,7 +29,7 @@ const plans = [
     name: "Nova",
     icon: Sparkles,
     tagline: "Students & Hackathons",
-    price: "Free",
+    price: "Coming Soon",
     priceDetail: "Event or Student Access",
     gradient: "from-purple-400 to-pink-500",
     glowColor: "rgba(168, 85, 247, 0.3)",
@@ -50,8 +50,8 @@ const plans = [
     name: "Supernova",
     icon: Zap,
     tagline: "For Professional Developers",
-    price: "$12",
-    priceDetail: "per month",
+    price: "Coming Soon",
+    priceDetail: "",
     gradient: "from-orange-400 via-pink-500 to-purple-500",
     glowColor: "rgba(249, 115, 22, 0.3)",
     popular: false,
@@ -71,8 +71,8 @@ const plans = [
     name: "Galaxy",
     icon: Rocket,
     tagline: "Team Collaboration",
-    price: "$49",
-    priceDetail: "per month",
+    price: "Coming Soon",
+    priceDetail: "",
     gradient: "from-emerald-400 via-cyan-500 to-blue-500",
     glowColor: "rgba(16, 185, 129, 0.3)",
     popular: false,
@@ -92,7 +92,7 @@ const plans = [
     name: "Astra Core",
     icon: Building,
     tagline: "Enterprise Solution",
-    price: "Custom",
+    price: "Coming Soon",
     priceDetail: "Contact Sales",
     gradient: "from-indigo-400 via-purple-500 to-pink-500",
     glowColor: "rgba(99, 102, 241, 0.3)",
@@ -229,16 +229,15 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
       )}
 
       {/* Glow effect */}
-      <div 
+      <div
         className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-500"
         style={{ background: plan.glowColor }}
       />
 
       {/* Card */}
       <motion.div
-        className={`relative p-6 md:p-8 rounded-3xl backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 border-2 ${
-          plan.popular ? 'border-purple-500/50' : 'border-white/10'
-        } group-hover:border-white/30 transition-all duration-300 h-full flex flex-col min-h-[600px]`}
+        className={`relative p-6 md:p-8 rounded-3xl backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 border-2 ${plan.popular ? 'border-purple-500/50' : 'border-white/10'
+          } group-hover:border-white/30 transition-all duration-300 h-full flex flex-col min-h-[600px]`}
         whileHover={{ y: -10 }}
       >
         {/* Icon */}
@@ -247,9 +246,9 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
           whileHover={{ rotate: 360, scale: 1.1 }}
           transition={{ duration: 0.6 }}
         >
-          <plan.icon 
-            className={`w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br ${plan.gradient} bg-clip-text text-transparent`} 
-            strokeWidth={2} 
+          <plan.icon
+            className={`w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br ${plan.gradient} bg-clip-text text-transparent`}
+            strokeWidth={2}
           />
         </motion.div>
 
@@ -267,7 +266,7 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
         <div className="mb-6 md:mb-8 min-h-[5rem]">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl md:text-4xl">{plan.price}</span>
-            {plan.priceDetail !== "Forever" && plan.priceDetail !== "Contact Sales" && plan.priceDetail !== "Event or Student Access" && (
+            {plan.priceDetail && plan.priceDetail !== "Forever" && plan.priceDetail !== "Contact Sales" && plan.priceDetail !== "Event or Student Access" && (
               <span className="text-gray-400 text-sm">/{plan.priceDetail}</span>
             )}
           </div>
