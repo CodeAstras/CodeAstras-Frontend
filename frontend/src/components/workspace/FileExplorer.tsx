@@ -97,7 +97,7 @@ export function FileExplorer({
   };
 
   return (
-    <div className="w-64 bg-[#0f0f0f] border-r border-white/5 flex flex-col">
+    <div className="w-full h-full bg-[#0f0f0f] border-r border-white/5 flex flex-col">
       {/* Header */}
       <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
         <span className="text-xs font-semibold tracking-wide text-white/60">

@@ -37,6 +37,7 @@ import {
 import { CosmicStars } from "../components/workspace/CosmicStars";
 
 import { useNavigate } from 'react-router-dom';
+import { NotificationBell } from '../components/NotificationBell';
 
 type TabView = 'overview' | 'code' | 'files' | 'tasks' | 'members' | 'docs' | 'settings';
 
@@ -214,8 +215,8 @@ export default function TeamWorkspace() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as TabView)}
                   className={`relative px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
-                      ? 'text-white'
-                      : 'text-white/60 hover:text-white/90 hover:bg:white/5'
+                    ? 'text-white'
+                    : 'text-white/60 hover:text-white/90 hover:bg:white/5'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -238,10 +239,7 @@ export default function TeamWorkspace() {
               />
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
             </div>
-            <button className="relative p-2 rounded-lg hover:bg-white/5 transition-colors">
-              <Bell className="w-5 h-5 text-white/60" />
-              <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#0ea5e9] rounded-full animate-pulse" />
-            </button>
+            <NotificationBell />
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#0ea5e9] flex items-center justify-center font-semibold cursor-pointer hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all">
               YO
             </div>
@@ -392,8 +390,8 @@ export default function TeamWorkspace() {
                             <h3 className="text-lg font-semibold">{project.name}</h3>
                             <div
                               className={`px-2 py-1 rounded-full text-xs font-medium ${project.status === 'active'
-                                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                  : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
                                 }`}
                             >
                               {project.status}

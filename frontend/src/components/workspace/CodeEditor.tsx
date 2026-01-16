@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import Editor, { OnMount } from "@monaco-editor/react";
 
-import { connectCodeSocket, sendCodeEdit } from "../../services/wsCode";
+import { codeWs } from "../../services/wsCode";
 import { connectRunSocket, sendRunRequest } from "../../services/wsRun";
 import { CodeEditMessage, RunCodeBroadcastMessage } from "../../types/wsTypes";
 import { startSession } from "../../services/session";
@@ -37,8 +37,15 @@ export default function CodeEditor({
   const [sessionStarting, setSessionStarting] = useState(false);
 
   const runTimeoutRef = useRef<number | null>(null);
-  const codeSocketConnected = useRef(false);
   const runSocketConnected = useRef(false);
+
+  // Use a ref for filePath so the WebSocket callback always sees the current path
+  // without needing to re-subscribe/re-bind.
+  const filePathRef = useRef(filePath);
+
+  useEffect(() => {
+    filePathRef.current = filePath;
+  }, [filePath]);
 
   // --------------------------------------------------
   // Decode JWT
@@ -81,20 +88,25 @@ export default function CodeEditor({
   }, [projectId]);
 
   // --------------------------------------------------
-  // Code WebSocket (ONE TIME)
+  // Code WebSocket
   // --------------------------------------------------
   useEffect(() => {
-    if (!projectId || codeSocketConnected.current) return;
+    if (!projectId) return;
 
-    codeSocketConnected.current = true;
-
-    connectCodeSocket(projectId, (msg: CodeEditMessage) => {
+    codeWs.connect(projectId, (msg: CodeEditMessage) => {
+      // Ignore my own edits
       if (msg.userId === userId) return;
-      if (msg.path === filePath) {
+
+      // Only apply if it matches current open file
+      if (msg.path === filePathRef.current) {
         onChange(msg.content);
       }
     });
-  }, [projectId, userId, filePath, onChange]);
+
+    return () => {
+      codeWs.disconnect();
+    };
+  }, [projectId, userId, onChange]);
 
   // --------------------------------------------------
   // Run WebSocket (ONE TIME)
@@ -166,8 +178,23 @@ export default function CodeEditor({
   }, [runSignal]);
 
   // --------------------------------------------------
-  // Editor theme
+  // Constants & Theme
   // --------------------------------------------------
+
+  const handleEditorChange = (value: string | undefined) => {
+    const val = value || "";
+    onChange(val);
+
+    if (projectId && filePath && userId !== "unknown-user") {
+      codeWs.sendEdit(projectId, {
+        projectId,
+        userId,
+        path: filePath,
+        content: val
+      });
+    }
+  };
+
   const handleEditorMount: OnMount = (editor, monaco) => {
     monaco.editor.defineTheme("codeastra-dark", {
       base: "vs-dark",
@@ -182,13 +209,9 @@ export default function CodeEditor({
         "editor.background": "#000000",
       },
     });
-
     monaco.editor.setTheme("codeastra-dark");
   };
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
   if (!filePath) {
     return (
       <div className="flex h-full items-center justify-center text-white/40 text-sm">
@@ -196,6 +219,36 @@ export default function CodeEditor({
       </div>
     );
   }
+
+  // --------------------------------------------------
+  // Helper: Get language from extension
+  // --------------------------------------------------
+  const getLanguageFromPath = (path: string): string => {
+    const ext = path.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case "js": return "javascript";
+      case "jsx": return "javascript";
+      case "ts": return "typescript";
+      case "tsx": return "typescript";
+      case "css": return "css";
+      case "html": return "html";
+      case "json": return "json";
+      case "py": return "python";
+      case "java": return "java";
+      case "c": return "c";
+      case "cpp": return "cpp";
+      case "md": return "markdown";
+      case "sql": return "sql";
+      case "xml": return "xml";
+      case "yaml": return "yaml";
+      case "yml": return "yaml";
+      case "sh": return "shell";
+      case "go": return "go";
+      case "rs": return "rust";
+      case "php": return "php";
+      default: return "plaintext";
+    }
+  };
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -208,20 +261,36 @@ export default function CodeEditor({
       <div className="flex-1 p-4">
         <div className="flex flex-col h-full rounded-xl overflow-hidden border border-[#2a2b36] bg-[#1a1b26]">
           <div className="px-4 py-2 text-xs text-gray-400 border-b border-[#2a2b36]">
-            Editing: {filePath}
+            Editing: {filePath} <span className="ml-2 opacity-50">({getLanguageFromPath(filePath)})</span>
           </div>
 
           <Editor
+            key={filePath} // FORCE REMOUNT on file change to ensure language/content load correctly
             height="100%"
+            path={filePath} // Helps Monaco with intellisense model URI
+            defaultLanguage="plaintext"
+            language={getLanguageFromPath(filePath)}
             value={content}
-            onChange={(v) => onChange(v || "")}
+            onChange={handleEditorChange}
             theme="codeastra-dark"
             onMount={handleEditorMount}
             options={{
               fontSize: 14,
+              fontFamily: "'Fira Code', 'JetBrains Mono', Consolas, monospace",
+              fontLigatures: true,
               minimap: { enabled: true },
               automaticLayout: true,
               scrollBeyondLastLine: false,
+              wordWrap: "on",
+              autoClosingBrackets: "always",
+              autoClosingQuotes: "always",
+              formatOnType: true,
+              formatOnPaste: true,
+              tabSize: 2,
+              suggest: {
+                showWords: true,
+                showSnippets: true,
+              },
             }}
           />
         </div>
