@@ -1,23 +1,29 @@
 import { Client, IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { jwtDecode } from "jwt-decode";
-import { toast } from "sonner";
 
-// Types
+// Types matching V1 Spec
+export type SignalType = "CALL_JOIN" | "CALL_LEAVE" | "CALL_OFFER" | "CALL_ANSWER" | "CALL_ICE";
+
 export interface SignalMessage {
-    type: "offer" | "answer" | "ice-candidate" | "join" | "leave";
-    payload: any;
+    type: SignalType;
+    payload?: any; // Offer/Answer/Candidate or empty for Join/Leave
     senderId: string;
-    targetId?: string; // For direct signaling
+    targetId?: string; // For direct signaling (Offer/Answer/Ice)
+}
+
+export interface CallParticipantsMessage {
+    type: "CALL_PARTICIPANTS";
+    participants: string[]; // List of userIds currently in call
 }
 
 class VoiceWebSocketService {
     private client: Client | null = null;
     private userId: string | null = null;
     private projectId: string | null = null;
-    private onSignal: ((signal: SignalMessage) => void) | null = null;
+    private onSignal: ((signal: SignalMessage | CallParticipantsMessage) => void) | null = null;
 
-    connect(projectId: string, onSignal: (signal: SignalMessage) => void) {
+    connect(projectId: string, onSignal: (signal: SignalMessage | CallParticipantsMessage) => void) {
         this.projectId = projectId;
         this.onSignal = onSignal;
 
@@ -45,44 +51,63 @@ class VoiceWebSocketService {
         });
 
         this.client.onConnect = () => {
-            console.log("🟢 Voice WebSocket connected.");
+            console.log("🟢 Voice WebSocket connected (V1).");
 
-            // Subscribe to project voice topic
-            this.client?.subscribe(`/topic/projects/${projectId}/voice`, (message: IMessage) => {
+            // Subscribe to project CALL topic
+            this.client?.subscribe(`/topic/project/${projectId}/call`, (message: IMessage) => {
                 if (this.onSignal) {
-                    const signal = JSON.parse(message.body);
-                    // Filter out own messages if backend echoes them
-                    if (signal.senderId !== this.userId) {
+                    try {
+                        const signal = JSON.parse(message.body);
+                        // Filter out own messages if backend echoes them
+                        // (Unless it's a Participants list which might include valid info)
+                        if (signal.senderId && signal.senderId === this.userId) {
+                            return;
+                        }
                         this.onSignal(signal);
+                    } catch (e) {
+                        console.error("Error parsing voice signal", e);
+                    }
+                }
+            });
+
+            // Subscribe to User Queue for direct messages (if backend uses it for list)
+            this.client?.subscribe(`/user/queue/call`, (message: IMessage) => {
+                if (this.onSignal) {
+                    try {
+                        const msg = JSON.parse(message.body);
+                        this.onSignal(msg);
+                    } catch (e) {
+                        console.error("Error parsing user queue message", e);
                     }
                 }
             });
 
             // Send Join Signal
-            this.sendSignal({ type: "join", payload: {}, senderId: this.userId! });
+            this.sendSignal({ type: "CALL_JOIN", senderId: this.userId! });
         };
 
         this.client.activate();
     }
 
-    sendSignal(signal: SignalMessage) {
+    sendSignal(signal: Omit<SignalMessage, "payload"> & { payload?: any }) {
         if (!this.client?.connected || !this.projectId) {
             console.warn("Voice WS not connected, cannot send signal", signal.type);
             return;
         }
+
+        // V1 Spec: Send to /app/project/{projectId}/call
         this.client.publish({
-            destination: `/app/projects/${this.projectId}/voice`,
+            destination: `/app/project/${this.projectId}/call`,
             body: JSON.stringify(signal),
         });
     }
 
     disconnect() {
         if (this.client) {
-            // Send Leave Signal
             if (this.userId) {
                 // Best effort leave
                 try {
-                    this.sendSignal({ type: "leave", payload: {}, senderId: this.userId });
+                    this.sendSignal({ type: "CALL_LEAVE", senderId: this.userId });
                 } catch (e) { /* ignore */ }
             }
             this.client.deactivate();

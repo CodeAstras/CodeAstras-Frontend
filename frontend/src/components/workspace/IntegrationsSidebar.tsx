@@ -9,18 +9,20 @@ export function IntegrationsSidebar() {
     { icon: Settings, label: 'Settings', active: false },
   ];
 
+  const topIntegrations = integrations.filter(i => i.label !== 'Settings');
+  const bottomIntegrations = integrations.filter(i => i.label === 'Settings');
+
   return (
-    <div className="w-16 bg-[#0f0f0f] border-r border-white/5 flex flex-col items-center py-4 gap-4">
-      {integrations.map((item) => {
+    <div className="w-16 h-full bg-[#0f0f0f] border-r border-white/5 flex flex-col items-center py-4 gap-4">
+      {topIntegrations.map((item) => {
         const Icon = item.icon;
         return (
           <button
             key={item.label}
-            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${
-              item.active
+            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${item.active
                 ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
                 : 'hover:bg-white/10 text-white/60 hover:text-white'
-            }`}
+              }`}
             title={item.label}
           >
             <Icon className="w-5 h-5" />
@@ -30,6 +32,24 @@ export function IntegrationsSidebar() {
           </button>
         );
       })}
+
+      <div className="mt-auto flex flex-col gap-4">
+        {bottomIntegrations.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.label}
+              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${item.active
+                  ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
+                  : 'hover:bg-white/10 text-white/60 hover:text-white'
+                }`}
+              title={item.label}
+            >
+              <Icon className="w-5 h-5" />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

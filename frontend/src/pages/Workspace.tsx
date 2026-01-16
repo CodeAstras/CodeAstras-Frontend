@@ -178,7 +178,7 @@ export default function Workspace() {
 
       <div className="flex h-screen overflow-hidden">
         <div className="flex flex-1 min-w-0">
-          <div className="hidden md:block">
+          <div className="hidden md:block h-full">
             <IntegrationsSidebar />
           </div>
 

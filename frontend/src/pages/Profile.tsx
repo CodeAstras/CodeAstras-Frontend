@@ -59,74 +59,7 @@ export default function Profile() {
     { label: 'Projects', value: 24, icon: Code2, color: '#7c3aed' },
     { label: 'Rooms Joined', value: 156, icon: Users, color: '#0ea5e9' },
     { label: 'Contributions', value: 1247, icon: GitBranch, color: '#06b6d4' },
-    { label: 'Streak', value: '42 days', icon: Flame, color: '#f59e0b' },
-    { label: 'Languages', value: 8, icon: Code2, color: '#8b5cf6' },
   ];
-
-  // Badges
-  const badges = [
-    { id: 1, name: 'Early User', description: 'Joined in the first month', icon: Star, tier: 'gold', unlocked: true },
-    { id: 2, name: 'Daily Streak x7', description: '7 days coding streak', icon: Flame, tier: 'silver', unlocked: true },
-    { id: 3, name: 'Team Player', description: 'Collaborated 50+ times', icon: Users, tier: 'gold', unlocked: true },
-    { id: 4, name: 'Room Leader', description: 'Hosted 10+ rooms', icon: Video, tier: 'silver', unlocked: true },
-    { id: 5, name: '1000 Lines', description: 'Wrote 1000+ lines of code', icon: Code2, tier: 'bronze', unlocked: true },
-    { id: 6, name: 'Astra Master', description: 'Complete all achievements', icon: Trophy, tier: 'diamond', unlocked: false },
-    { id: 7, name: 'Night Owl', description: 'Code after midnight 10 times', icon: Moon, tier: 'bronze', unlocked: true },
-    { id: 8, name: 'Code Mentor', description: 'Help 20+ developers', icon: BookOpen, tier: 'silver', unlocked: false },
-  ];
-
-  // Contribution data (simulated)
-  const generateContributions = () => {
-    const contributions: { date: string; count: number }[] = [];
-    const today = new Date();
-
-    for (let i = 364; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const count = Math.floor(Math.random() * 15);
-      contributions.push({
-        date: date.toISOString().split('T')[0],
-        count,
-      });
-    }
-    return contributions;
-  };
-
-  const contributions = generateContributions();
-
-  // Activity timeline
-  const activities = [
-    { id: 1, type: 'room', text: 'Joined room "Backend Sprint Planning"', time: '2 hours ago', icon: Video, color: '#7c3aed' },
-    { id: 2, type: 'project', text: 'Created new project "E-Commerce API"', time: '5 hours ago', icon: Code2, color: '#0ea5e9' },
-    { id: 3, type: 'badge', text: 'Earned badge "Team Player"', time: '1 day ago', icon: Award, color: '#f59e0b' },
-    { id: 4, type: 'workspace', text: 'Updated Frontend Squad workspace', time: '1 day ago', icon: Users, color: '#06b6d4' },
-    { id: 5, type: 'streak', text: 'Achieved 42-day coding streak 🔥', time: '2 days ago', icon: Flame, color: '#f59e0b' },
-    { id: 6, type: 'collab', text: 'Collaborated with Sarah Kim on Analytics Dashboard', time: '3 days ago', icon: GitBranch, color: '#8b5cf6' },
-  ];
-
-  const getTierColor = (tier: string) => {
-    switch (tier) {
-      case 'diamond':
-        return '#06b6d4';
-      case 'gold':
-        return '#f59e0b';
-      case 'silver':
-        return '#94a3b8';
-      case 'bronze':
-        return '#ca8a04';
-      default:
-        return '#7c3aed';
-    }
-  };
-
-  const getContributionColor = (count: number) => {
-    if (count === 0) return '#1a1a1a';
-    if (count <= 3) return '#7c3aed20';
-    if (count <= 6) return '#7c3aed40';
-    if (count <= 9) return '#7c3aed60';
-    if (count <= 12) return '#7c3aed80';
-    return '#7c3aed';
-  };
 
   const sidebarItems = [
     { id: 'profile' as TabView, label: 'Profile', icon: User },
@@ -204,8 +137,8 @@ export default function Profile() {
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === item.id
-                      ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border border-[#7c3aed]/50 text-white'
-                      : 'text-white/60 hover:bg-white/5 hover:text-white'
+                    ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border border-[#7c3aed]/50 text-white'
+                    : 'text-white/60 hover:bg-white/5 hover:text-white'
                     }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -355,34 +288,9 @@ export default function Profile() {
                   Recent Activity
                 </h2>
 
-                <div className="space-y-4">
-                  {activities.map((activity, idx) => {
-                    const Icon = activity.icon;
-                    return (
-                      <div key={activity.id} className="relative pl-12">
-                        {/* Timeline line */}
-                        {idx < activities.length - 1 && (
-                          <div className="absolute left-5 top-10 w-px h-full bg-gradient-to-b from-white/20 to-transparent" />
-                        )}
-
-                        {/* Icon */}
-                        <div
-                          className="absolute left-0 top-1 w-10 h-10 rounded-xl flex items-center justify-center"
-                          style={{
-                            backgroundColor: `${activity.color}20`,
-                            boxShadow: `0 0 20px ${activity.color}40`,
-                          }}
-                        >
-                          <Icon className="w-5 h-5" style={{ color: activity.color }} />
-                        </div>
-
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all">
-                          <p className="text-white/90 mb-1">{activity.text}</p>
-                          <p className="text-xs text-white/40">{activity.time}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                  <div className="text-white/40 font-medium text-lg">Coming Soon</div>
+                  <div className="text-sm text-white/20">We are tracking your coding journey across the cosmos</div>
                 </div>
               </div>
             </div>
@@ -396,70 +304,12 @@ export default function Profile() {
                   <Award className="w-8 h-8 text-[#7c3aed]" />
                   Achievement Badges
                 </h1>
-                <p className="text-white/60">
-                  {badges.filter((b) => b.unlocked).length} of {badges.length} badges earned
-                </p>
+                <p className="text-white/60">Unlock rewards as you code</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {badges.map((badge) => {
-                  const Icon = badge.icon;
-                  const tierColor = getTierColor(badge.tier);
-                  return (
-                    <div
-                      key={badge.id}
-                      className={`relative bg-[#0f0f0f] border rounded-2xl p-6 transition-all duration-300 group ${badge.unlocked
-                          ? 'border-white/10 hover:border-white/30 cursor-pointer'
-                          : 'border-white/5 opacity-50'
-                        }`}
-                    >
-                      {/* Lock overlay for locked badges */}
-                      {!badge.unlocked && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl backdrop-blur-sm">
-                          <Lock className="w-8 h-8 text-white/30" />
-                        </div>
-                      )}
-
-                      {/* Glow effect */}
-                      {badge.unlocked && (
-                        <div
-                          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl"
-                          style={{ backgroundColor: `${tierColor}20` }}
-                        />
-                      )}
-
-                      <div className="relative">
-                        <div
-                          className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 mx-auto"
-                          style={{
-                            backgroundColor: badge.unlocked ? `${tierColor}20` : '#1a1a1a',
-                            border: `2px solid ${badge.unlocked ? tierColor : '#2a2a2a'}`,
-                            boxShadow: badge.unlocked ? `0 0 20px ${tierColor}40` : 'none',
-                          }}
-                        >
-                          <Icon className="w-8 h-8" style={{ color: badge.unlocked ? tierColor : '#4a4a4a' }} />
-                        </div>
-
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-2 mb-2">
-                            <h3 className="font-semibold">{badge.name}</h3>
-                            <div
-                              className="px-2 py-0.5 rounded-full text-xs font-medium capitalize"
-                              style={{
-                                backgroundColor: `${tierColor}20`,
-                                color: tierColor,
-                                border: `1px solid ${tierColor}40`,
-                              }}
-                            >
-                              {badge.tier}
-                            </div>
-                          </div>
-                          <p className="text-sm text-white/60">{badge.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
+                <div className="text-sm text-white/20">Badges and achievements system is under development</div>
               </div>
             </div>
           )}
@@ -475,32 +325,9 @@ export default function Profile() {
                 <p className="text-white/60">Keep the fire burning! 🔥</p>
               </div>
 
-              {/* Current Streak */}
-              <div className="bg-gradient-to-r from-[#f59e0b]/20 to-[#ec4899]/20 border border-[#f59e0b]/30 rounded-3xl p-8">
-                <div className="text-center">
-                  <Flame className="w-16 h-16 text-[#f59e0b] mx-auto mb-4" />
-                  <div className="text-6xl font-bold mb-2 bg-gradient-to-r from-[#f59e0b] to-[#ec4899] bg-clip-text text-transparent">
-                    42 Days
-                  </div>
-                  <p className="text-xl text-white/80 mb-4">Current Streak</p>
-                  <p className="text-white/60">Don't break the chain! Code today to continue.</p>
-                </div>
-              </div>
-
-              {/* Streak Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 text-center">
-                  <div className="text-3xl font-bold text-[#7c3aed] mb-2">42</div>
-                  <div className="text-sm text-white/60">Current Streak</div>
-                </div>
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 text-center">
-                  <div className="text-3xl font-bold text-[#0ea5e9] mb-2">89</div>
-                  <div className="text-sm text-white/60">Longest Streak</div>
-                </div>
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 text-center">
-                  <div className="text-3xl font-bold text-[#f59e0b] mb-2">247</div>
-                  <div className="text-sm text-white/60">Total Days</div>
-                </div>
+              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
+                <div className="text-sm text-white/20">Daily coding streaks and rewards are on the way</div>
               </div>
             </div>
           )}
@@ -515,76 +342,9 @@ export default function Profile() {
                 </h1>
               </div>
 
-              {/* Contribution Heatmap */}
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl p-8 overflow-x-auto">
-                <div className="min-w-[900px]">
-                  <div className="flex gap-1">
-                    {Array.from({ length: 52 }).map((_, weekIdx) => (
-                      <div key={weekIdx} className="flex flex-col gap-1">
-                        {Array.from({ length: 7 }).map((_, dayIdx) => {
-                          const contribution = contributions[weekIdx * 7 + dayIdx];
-                          if (!contribution) return null;
-
-                          return (
-                            <div
-                              key={dayIdx}
-                              className="w-3 h-3 rounded-sm cursor-pointer hover:ring-2 hover:ring-white/50 transition-all group relative"
-                              style={{
-                                backgroundColor: getContributionColor(contribution.count),
-                              }}
-                              title={`${contribution.count} contributions on ${contribution.date}`}
-                            />
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Legend */}
-                  <div className="flex items-center justify-end gap-2 mt-4 text-xs text-white/40">
-                    <span>Less</span>
-                    {[0, 3, 6, 9, 12, 15].map((count) => (
-                      <div
-                        key={count}
-                        className="w-3 h-3 rounded-sm"
-                        style={{ backgroundColor: getContributionColor(count) }}
-                      />
-                    ))}
-                    <span>More</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contribution Stats */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Code2 className="w-5 h-5 text-[#7c3aed]" />
-                    <span className="text-sm text-white/60">Total Commits</span>
-                  </div>
-                  <div className="text-2xl font-bold">1,247</div>
-                </div>
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Target className="w-5 h-5 text-[#0ea5e9]" />
-                    <span className="text-sm text-white/60">Busiest Day</span>
-                  </div>
-                  <div className="text-2xl font-bold">Wednesday</div>
-                </div>
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Zap className="w-5 h-5 text-[#f59e0b]" />
-                    <span className="text-sm text-white/60">Avg/Day</span>
-                  </div>
-                  <div className="text-2xl font-bold">3.4</div>
-                </div>
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Star className="w-5 h-5 text-[#8b5cf6]" />
-                    <span className="text-sm text-white/60">Best Streak</span>
-                  </div>
-                  <div className="text-2xl font-bold">89 days</div>
-                </div>
+              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
+                <div className="text-sm text-white/20">Visualize your coding activity and impact</div>
               </div>
             </div>
           )}
@@ -600,99 +360,9 @@ export default function Profile() {
                 <p className="text-white/60">Manage your account and security</p>
               </div>
 
-              {/* Account Information */}
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl p-8">
-                <h2 className="text-xl font-semibold mb-6">Account Information</h2>
-                <div className="space-y-4 max-w-2xl">
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">Full Name</label>
-                    <input
-                      type="text"
-                      defaultValue={userData.name}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#7c3aed]/50 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">Email</label>
-                    <input
-                      type="email"
-                      defaultValue={userData.email}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#7c3aed]/50 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">Username</label>
-                    <input
-                      type="text"
-                      defaultValue={userData.username}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#7c3aed]/50 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-white/60 mb-2 block">Bio</label>
-                    <textarea
-                      defaultValue={userData.bio}
-                      rows={3}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#7c3aed]/50 transition-all resize-none"
-                    />
-                  </div>
-                  <button className="px-6 py-3 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all">
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-
-              {/* Security */}
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl p-8">
-                <h2 className="text-xl font-semibold mb-6">Security</h2>
-                <div className="space-y-4 max-w-2xl">
-                  <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">
-                    <div className="flex items-center gap-3">
-                      <Lock className="w-5 h-5 text-white/60" />
-                      <div className="text-left">
-                        <div className="font-medium">Change Password</div>
-                        <div className="text-sm text-white/40">Last changed 3 months ago</div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-white/40" />
-                  </button>
-
-                  <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">
-                    <div className="flex items-center gap-3">
-                      <Shield className="w-5 h-5 text-white/60" />
-                      <div className="text-left">
-                        <div className="font-medium">Two-Factor Authentication</div>
-                        <div className="text-sm text-green-400">Enabled</div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-white/40" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Connected Accounts */}
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl p-8">
-                <h2 className="text-xl font-semibold mb-6">Connected Accounts</h2>
-                <div className="space-y-3 max-w-2xl">
-                  <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Github className="w-5 h-5" />
-                      <span>GitHub</span>
-                    </div>
-                    <button className="px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-lg text-sm text-green-400">
-                      Connected
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <Chrome className="w-5 h-5" />
-                      <span>Google</span>
-                    </div>
-                    <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-all">
-                      Connect
-                    </button>
-                  </div>
-                </div>
+              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
+                <div className="text-sm text-white/20">Account settings and security controls are under development</div>
               </div>
             </div>
           )}
@@ -708,131 +378,15 @@ export default function Profile() {
                 <p className="text-white/60">Customize your CodeAstras experience</p>
               </div>
 
-              {/* Editor Preferences */}
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl p-8">
-                <h2 className="text-xl font-semibold mb-6">Editor Settings</h2>
-                <div className="space-y-6 max-w-2xl">
-                  <div>
-                    <label className="text-sm text-white/60 mb-3 block">Theme</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {['Dark', 'Neon', 'Cosmic'].map((theme) => (
-                        <button
-                          key={theme}
-                          className={`p-4 rounded-xl border transition-all ${theme === 'Dark'
-                              ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border-[#7c3aed]/50'
-                              : 'bg-white/5 border-white/10 hover:border-white/30'
-                            }`}
-                        >
-                          {theme}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-3 block">Font Family</label>
-                    <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#7c3aed]/50">
-                      <option>JetBrains Mono</option>
-                      <option>Fira Code</option>
-                      <option>Cascadia Code</option>
-                      <option>Monaco</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-3 block flex items-center justify-between">
-                      <span>Font Size</span>
-                      <span className="text-white">14px</span>
-                    </label>
-                    <input type="range" min="10" max="24" defaultValue="14" className="w-full accent-[#7c3aed]" />
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-3 block flex items-center justify-between">
-                      <span>Tab Size</span>
-                      <span className="text-white">2 spaces</span>
-                    </label>
-                    <div className="flex gap-2">
-                      {[2, 4, 8].map((size) => (
-                        <button
-                          key={size}
-                          className={`flex-1 py-2 rounded-lg border transition-all ${size === 2
-                              ? 'bg-[#7c3aed]/20 border-[#7c3aed]/50 text-white'
-                              : 'bg-white/5 border-white/10 text-white/60 hover:border-white/30'
-                            }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Voice & Audio */}
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl p-8">
-                <h2 className="text-xl font-semibold mb-6">Voice & Audio</h2>
-                <div className="space-y-6 max-w-2xl">
-                  <div>
-                    <label className="text-sm text-white/60 mb-3 block">Input Device</label>
-                    <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#7c3aed]/50">
-                      <option>Default Microphone</option>
-                      <option>Built-in Microphone</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-3 block">Output Device</label>
-                    <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#7c3aed]/50">
-                      <option>Default Speakers</option>
-                      <option>Built-in Speakers</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-white/60 mb-3 block flex items-center justify-between">
-                      <span>Input Volume</span>
-                      <span className="text-white">75%</span>
-                    </label>
-                    <input type="range" min="0" max="100" defaultValue="75" className="w-full accent-[#7c3aed]" />
-                  </div>
-
-                  <button className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all flex items-center gap-2">
-                    <Volume2 className="w-4 h-4" />
-                    Test Audio
-                  </button>
-                </div>
-              </div>
-
-              {/* Notifications */}
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl p-8">
-                <h2 className="text-xl font-semibold mb-6">Notifications</h2>
-                <div className="space-y-4 max-w-2xl">
-                  {[
-                    { label: 'Email Notifications', desc: 'Receive updates via email' },
-                    { label: 'Push Notifications', desc: 'Browser notifications' },
-                    { label: 'Streak Reminders', desc: 'Daily coding streak alerts' },
-                    { label: 'Team Updates', desc: 'Workspace and team activity' },
-                  ].map((setting) => (
-                    <div
-                      key={setting.label}
-                      className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl"
-                    >
-                      <div>
-                        <div className="font-medium mb-1">{setting.label}</div>
-                        <div className="text-sm text-white/40">{setting.desc}</div>
-                      </div>
-                      <button className="w-12 h-6 bg-[#7c3aed] rounded-full relative transition-all">
-                        <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 transition-all" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
+                <div className="text-sm text-white/20">Advanced customization options are coming soon</div>
               </div>
             </div>
           )}
-        </main>
-      </div>
-    </div>
+
+        </main >
+      </div >
+    </div >
   );
 }

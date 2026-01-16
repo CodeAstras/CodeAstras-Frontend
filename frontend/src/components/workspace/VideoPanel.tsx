@@ -52,7 +52,7 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
       const collaborator = safeCollaborators.find(c => c?.userId === peerId);
       return {
         id: peerId,
-        name: collaborator ? collaborator.email.split('@')[0] : `User ${peerId.substring(0, 4)}`,
+        name: collaborator ? collaborator.email : `User ${peerId.substring(0, 4)}`, // Use full email if available
         avatar: collaborator ? collaborator.email.substring(0, 2).toUpperCase() : '??',
         color: '#8b5cf6', // others are purple
         isMe: false
@@ -119,7 +119,13 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
         {/* Grid for Others */}
         <div className="grid grid-cols-2 gap-3">
           {others.map(p => (
-            <div key={p.id} className="relative aspect-video bg-[#15151a] rounded-2xl border border-white/10 overflow-hidden transition-all hover:border-white/20">
+            <div
+              key={p.id}
+              className={cn(
+                "relative aspect-video bg-[#15151a] rounded-2xl border overflow-hidden transition-all",
+                activeSpeakers.includes(p.id) ? "border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]" : "border-white/10 hover:border-white/20"
+              )}
+            >
               <div className="absolute inset-0 flex items-center justify-center">
                 <div
                   className="w-10 h-10 rounded-full border flex items-center justify-center text-sm font-medium"
@@ -130,7 +136,7 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
               </div>
               {/* Floating Name Badge - Bottom Left */}
               <div className="absolute bottom-2 left-2 flex flex-col">
-                {p.id === 'user-2' && <div className="text-[10px] text-white/50 mb-0.5">You</div>}
+                {p.isMe && <div className="text-[10px] text-white/50 mb-0.5 font-medium">You</div>}
                 <div className="bg-[#0a0a0a]/80 backdrop-blur-sm px-2 py-1 rounded-lg border border-white/5 self-start">
                   <span className="text-[10px] text-white/90">{p.name}</span>
                 </div>

@@ -15,6 +15,11 @@ import { Outlet } from "react-router-dom";
 import { CollaborationProvider } from "./context/CollaborationContext";
 import { VoiceProvider } from "./context/VoiceContext";
 import { VoiceControlPanel } from "./components/workspace/VoiceControlPanel";
+import MyProjects from "./pages/MyProjects";
+import Rooms from "./pages/Rooms";
+import Teams from "./pages/Teams";
+import Friends from "./pages/Friends";
+import DashboardLayout from "./components/layouts/DashboardLayout";
 
 
 
@@ -27,11 +32,13 @@ export default function App() {
 
 
         {/* Authenticated Routes with Collaboration Provider */}
+
+
         <Route element={
           <RequireAuth>
             <CollaborationProvider>
               <VoiceProvider>
-                <Outlet />
+                <DashboardLayout />
                 <VoiceControlPanel />
               </VoiceProvider>
             </CollaborationProvider>
@@ -44,6 +51,10 @@ export default function App() {
           <Route path="/team" element={<TeamWorkspace />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/editor/:projectId" element={<Workspace />} />
+          <Route path="/my-projects" element={<MyProjects />} />
+          <Route path="/rooms" element={<Rooms />} />
+          <Route path="/teams" element={<Teams />} />
+          <Route path="/friends" element={<Friends />} />
         </Route>
 
         {/* Auth (public) */}

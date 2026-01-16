@@ -1,56 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import Editor, { OnMount, loader } from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
-
-// Explicitly import language contributions to ensure highlighting works
-// 1. Basic Languages (Highlighting only)
-import 'monaco-editor/esm/vs/basic-languages/python/python.contribution';
-import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution';
-import 'monaco-editor/esm/vs/basic-languages/java/java.contribution';
-import 'monaco-editor/esm/vs/basic-languages/go/go.contribution';
-import 'monaco-editor/esm/vs/basic-languages/rust/rust.contribution';
-
-// 2. Smart Languages (Highlighting + IntelliSense) - these live in vs/language
-import 'monaco-editor/esm/vs/language/json/monaco.contribution';
-import 'monaco-editor/esm/vs/language/css/monaco.contribution';
-import 'monaco-editor/esm/vs/language/html/monaco.contribution';
-import 'monaco-editor/esm/vs/language/typescript/monaco.contribution'; // Handles both TS and JS
-
-// Import workers
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
-import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
-import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+import Editor, { OnMount } from "@monaco-editor/react";
 
 import { codeWs } from "../../services/wsCode";
 import { connectRunSocket, sendRunRequest } from "../../services/wsRun";
 import { CodeEditMessage, RunCodeBroadcastMessage } from "../../types/wsTypes";
 import { startSession } from "../../services/session";
-
-// Configure Monaco Environment for Vite
-self.MonacoEnvironment = {
-  getWorker(_, label) {
-    if (label === 'json') {
-      return new jsonWorker();
-    }
-    if (label === 'css' || label === 'scss' || label === 'less') {
-      return new cssWorker();
-    }
-    if (label === 'html' || label === 'handlebars' || label === 'razor') {
-      return new htmlWorker();
-    }
-    if (label === 'typescript' || label === 'javascript') {
-      return new tsWorker();
-    }
-    return new editorWorker();
-  },
-};
-
-// Force use of local monaco instance
-loader.config({ monaco });
 
 interface JwtPayload {
   sub: string;

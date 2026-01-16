@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
-import { voiceWs, SignalMessage } from "../services/wsVoice";
+import { voiceWs, SignalMessage, CallParticipantsMessage } from "../services/wsVoice";
 import { toast } from "sonner";
 import { jwtDecode } from "jwt-decode";
+import { Client } from "@stomp/stompjs";
 
 interface VoiceContextType {
     joinCall: (projectId: string) => Promise<void>;
@@ -29,15 +30,35 @@ const RTC_CONFIG: RTCConfiguration = {
     ]
 };
 
+// GLOBAL AudioContext Singleton (per V1 Phase 2.1)
+// Only create one audio context for the entire session to avoid resource limits
+let globalAudioContext: AudioContext | null = null;
+function getAudioContext() {
+    if (!globalAudioContext) {
+        globalAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (globalAudioContext.state === 'suspended') {
+        globalAudioContext.resume();
+    }
+    return globalAudioContext;
+}
+
 export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
-    const [isMuted, setIsMuted] = useState(false);
+    const [isMuted, setIsMuted] = useState(true); // Default muted per V1 Rule 3.1
     const [activeSpeakers, setActiveSpeakers] = useState<string[]>([]);
+
+    // State to force re-render when peers map changes
+    const [peersMapVersion, setPeersMapVersion] = useState(0);
 
     const localStreamRef = useRef<MediaStream | null>(null);
     const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
     const projectIdRef = useRef<string | null>(null);
     const userIdRef = useRef<string>("");
+
+    // Active Speaker Detection Refs
+    const analysersRef = useRef<Map<string, AnalyserNode>>(new Map());
+    const speakingFramesRef = useRef<Map<string, number>>(new Map());
 
     // Get User ID from token
     useEffect(() => {
@@ -54,9 +75,15 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const initLocalStream = async () => {
         try {
+            // V1 Rule 6: Audio Only, acquire once
+            if (localStreamRef.current) return localStreamRef.current;
+
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             localStreamRef.current = stream;
+
+            // Apply initial mute state
             stream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+
             return stream;
         } catch (error) {
             console.error("Failed to get local audio", error);
@@ -68,7 +95,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const joinCall = useCallback(async (projectId: string) => {
         if (isConnected) return;
 
-        console.log(`📞 Joining call for project: ${projectId}`);
+        console.log(`📞 V1 Joining call for project: ${projectId}`);
         projectIdRef.current = projectId;
 
         await initLocalStream();
@@ -81,73 +108,103 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const leaveCall = useCallback(() => {
         if (!isConnected) return;
 
-        voiceWs.disconnect();
+        // V1 Rule 1.10: Send CALL_LEAVE
+        voiceWs.disconnect(); // This sends CALL_LEAVE internally
 
+        // Close all peers
         peersRef.current.forEach(pc => pc.close());
         peersRef.current.clear();
+        setPeersMapVersion(v => v + 1);
 
+        // Stop local tracks
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop());
             localStreamRef.current = null;
         }
 
+        // Reset UI state
         setIsConnected(false);
+        setActiveSpeakers([]);
+        analysersRef.current.clear();
+        speakingFramesRef.current.clear();
+
         toast.info("Left voice channel");
     }, [isConnected]);
 
-    const handleSignal = async (signal: SignalMessage) => {
+    const handleSignal = async (signal: SignalMessage | CallParticipantsMessage) => {
+        // Handle Participants List (V1 Rule 1.4: You Joined)
+        if ('participants' in signal) { // Type guard for CallParticipantsMessage
+            const { participants } = signal;
+            console.log("👥 Received Participants List:", participants);
+
+            // Create PC for each participant (NO OFFER)
+            participants.forEach(pId => {
+                if (pId !== userIdRef.current) {
+                    createPeerConnection(pId, false); // False = Joiner never offers
+                }
+            });
+            return;
+        }
+
         const { type, payload, senderId, targetId } = signal;
 
         // If signal is directed to a specific user and it's not us, ignore
         if (targetId && targetId !== userIdRef.current) return;
 
-        console.log(`📶 Received signal: ${type} from ${senderId}`);
+        console.log(`📶 Received V1 signal: ${type} from ${senderId}`);
 
         switch (type) {
-            case "join":
-                createPeerConnection(senderId, true);
+            case "CALL_JOIN": // V1 Rule 1.5: Someone Else Joined
+                createPeerConnection(senderId, true); // True = Existing user sends offer
                 break;
-            case "offer":
+            case "CALL_OFFER": // V1 Rule 1.6: Handle OFFER
                 await handleOffer(senderId, payload);
                 break;
-            case "answer":
+            case "CALL_ANSWER": // V1 Rule 1.7: Handle ANSWER
                 await handleAnswer(senderId, payload);
                 break;
-            case "ice-candidate":
+            case "CALL_ICE": // V1 Rule 1.8: ICE Handling
                 await handleIceCandidate(senderId, payload);
                 break;
-            case "leave":
+            case "CALL_LEAVE": // V1 Rule 1.11: Other User Left
                 removePeer(senderId);
                 break;
         }
     };
 
+    // V1 Phase 1.3: Deterministic Offer Rule
+    // initiator = true only if WE are existing user and THEY joined.
     const createPeerConnection = async (targetId: string, initiator: boolean) => {
         if (peersRef.current.has(targetId)) return peersRef.current.get(targetId);
 
+        console.log(`🔗 Creating PC for ${targetId}. Initiator: ${initiator}`);
         const pc = new RTCPeerConnection(RTC_CONFIG);
         peersRef.current.set(targetId, pc);
+        setPeersMapVersion(v => v + 1);
 
+        // Add Local Audio Track
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => {
                 pc.addTrack(track, localStreamRef.current!);
             });
         }
 
+        // V1 Rule 1.9: Audio Playback + Phase 2 Entry Point (ontrack)
         pc.ontrack = (event) => {
             console.log(`🔊 Received remote track from ${targetId}`);
+            const stream = event.streams[0];
             const remoteAudio = new Audio();
-            remoteAudio.srcObject = event.streams[0];
+            remoteAudio.srcObject = stream;
             remoteAudio.autoplay = true;
 
-            // Analyze audio for active speaker
-            setupAudioAnalysis(targetId, event.streams[0]);
+            // Phase 2.2: Per Peer Detection Hook
+            setupAudioAnalysis(targetId, stream);
         };
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
                 voiceWs.sendSignal({
-                    type: "ice-candidate",
+                    type: "CALL_ICE", // V1 Name
                     payload: event.candidate,
                     senderId: userIdRef.current,
                     targetId
@@ -160,7 +217,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
                 voiceWs.sendSignal({
-                    type: "offer",
+                    type: "CALL_OFFER", // V1 Name
                     payload: offer,
                     senderId: userIdRef.current,
                     targetId
@@ -174,6 +231,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const handleOffer = async (senderId: string, offer: RTCSessionDescriptionInit) => {
+        // If we don't have a PC yet (race condition or first contact), create it (passive)
         const pc = await createPeerConnection(senderId, false);
         if (!pc) return;
 
@@ -182,7 +240,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await pc.setLocalDescription(answer);
 
         voiceWs.sendSignal({
-            type: "answer",
+            type: "CALL_ANSWER", // V1 Name
             payload: answer,
             senderId: userIdRef.current,
             targetId: senderId
@@ -206,145 +264,157 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const removePeer = (senderId: string) => {
         const pc = peersRef.current.get(senderId);
         if (pc) {
+            // Cleanup Analyser
+            const analyser = analysersRef.current.get(senderId);
+            if (analyser) {
+                analyser.disconnect();
+                analysersRef.current.delete(senderId);
+            }
+            // Close PC
             pc.close();
             peersRef.current.delete(senderId);
-            toast.info("User left");
+            setPeersMapVersion(v => v + 1);
+            toast.info("User left call");
         }
     };
 
+    // V1 Phase 3.4: Implementation Rule (Only toggle track.enabled)
     const toggleMute = () => {
         if (localStreamRef.current) {
+            const newState = !isMuted;
             localStreamRef.current.getAudioTracks().forEach(track => {
-                track.enabled = !track.enabled;
+                track.enabled = !newState; // if isMuted=false (unmuting), enabled=true
             });
-            setIsMuted(!isMuted);
+            setIsMuted(newState);
         }
     };
 
-    // Active Speaker Detection
+    // ----------------------------------------------------------------
+    // Phase 2: Active Speaker Detection (Strict Implementation)
+    // ----------------------------------------------------------------
+
+    const setupAudioAnalysis = (userId: string, stream: MediaStream) => {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        // V1 Phase 2.2: Source -> Analyser
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(analyser);
+
+        analysersRef.current.set(userId, analyser);
+        speakingFramesRef.current.set(userId, 0); // Init debouncer
+    };
+
     useEffect(() => {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const analysers = new Map<string, AnalyserNode>();
         let animationFrameId: number;
 
-        const checkAudioLevels = () => {
+        const detectSpeaking = () => {
+            if (!isConnected) return;
             const speaking: string[] = [];
+            const SPEAKING_THRESHOLD = 30; // V1 Phase 2.7 heuristic
 
-            analysers.forEach((analyser, userId) => {
+            analysersRef.current.forEach((analyser, userId) => {
                 const dataArray = new Uint8Array(analyser.frequencyBinCount);
                 analyser.getByteFrequencyData(dataArray);
 
                 const sum = dataArray.reduce((acc, val) => acc + val, 0);
                 const average = sum / dataArray.length;
 
-                if (average > 30) { // Threshold
+                // V1 Phase 2.8: Smoothing / Debounce
+                let frames = speakingFramesRef.current.get(userId) || 0;
+
+                if (average > SPEAKING_THRESHOLD) {
+                    frames++;
+                } else {
+                    // Decay faster than attack? Or equal. 
+                    // V1 suggestion: speakingFrames = Math.max(0, speakingFrames - 1);
+                    frames = Math.max(0, frames - 1);
+                }
+                speakingFramesRef.current.set(userId, frames);
+
+                if (frames > 5) { // Needs ~80ms continuous sound to trigger
                     speaking.push(userId);
                 }
             });
 
-            setActiveSpeakers(speaking);
-            animationFrameId = requestAnimationFrame(checkAudioLevels);
-        };
-
-        checkAudioLevels();
-
-        return () => {
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            audioContext.close();
-        };
-    }, [isConnected]); // Re-run when connection status changes or just run once? 
-    // Actually, we need to bind analysers when peers join.
-    // We can expose a method to register analyser or handle it within createPeerConnection but passing state up is hard.
-    // Better approach: Store streams in ref and check them here? or Ref current Peers.
-
-    // REVISED APPROACH FOR ACTIVE SPEAKER:
-    // We need to attach analysers when tracks are added in createPeerConnection. 
-    // Since createPeerConnection is inside the component, we can access a Ref to store analysers.
-
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const analysersRef = useRef<Map<string, AnalyserNode>>(new Map());
-
-    useEffect(() => {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-
-        const checkLevels = () => {
-            if (!isConnected) return;
-            const speaking: string[] = [];
-
-            analysersRef.current.forEach((analyser, userId) => {
-                const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                analyser.getByteFrequencyData(dataArray);
-                const avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                if (avg > 25) speaking.push(userId);
-            });
-
-            // Only update if changed to avoid render thrashing
+            // V1 Phase 2.9: Derived State Only
             setActiveSpeakers(prev => {
                 const isSame = prev.length === speaking.length && prev.every(id => speaking.includes(id));
                 return isSame ? prev : speaking;
             });
 
-            requestAnimationFrame(checkLevels);
+            animationFrameId = requestAnimationFrame(detectSpeaking);
         };
 
-        const raf = requestAnimationFrame(checkLevels);
+        const raf = requestAnimationFrame(detectSpeaking);
         return () => {
             cancelAnimationFrame(raf);
-            audioContextRef.current?.close();
         };
     }, [isConnected]);
 
-    // Push to Talk Logic
+    // ----------------------------------------------------------------
+    // Phase 3: Push-to-Talk (PTT)
+    // ----------------------------------------------------------------
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.code === "Space" && isMuted && isConnected) {
-                // If focused on input, ignore
-                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+            // V1 Phase 3.2: Space key
+            if (e.code === "Space" && isMuted && isConnected && !e.repeat) { // Ignore repeat
+                // V1 Phase 3.3: Safety Guards
+                // Using document.activeElement checks
+                const active = document.activeElement;
+                const tagName = active?.tagName;
+                const isInput = tagName === "INPUT" || tagName === "TEXTAREA";
+                const isEditor = active?.classList.contains("monaco-mouse-cursor-text") || active?.closest(".monaco-editor");
 
-                e.preventDefault(); // Prevent scroll
-                // Unmute
+                if (isInput || isEditor) return;
+
+                e.preventDefault();
+
+                // Unmute TEMPORARILY
                 if (localStreamRef.current) {
                     localStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
-                    setIsMuted(false);
+                    setIsMuted(false); // Update UI state
                 }
             }
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
+            // V1 Phase 3.2: Key Up -> Mute
             if (e.code === "Space" && !isMuted && isConnected) {
-                if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+                // Safety: Even if focused input, releasing SPACE should probably mute to prevent hot mic?
+                // V1 Spec says: "Losing focus mutes mic", "User releases key -> Mic mutes instantly".
+                // We should mute regardless of focus to be safe.
 
-                // Mute
                 if (localStreamRef.current) {
+                    // Check if it was a PTT release (we could store a 'isPTTActive' flag if we wanted to allow strict manual unmute + PTT mixed, but V1 implies PTT is the main mode or at least PTT ends mute)
+                    // For now, simple logic: Release Space = Mute.
                     localStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
                     setIsMuted(true);
                 }
             }
         };
 
+        // V1 Phase 3.3: On blur -> force mute
+        const handleBlur = () => {
+            if (!isMuted && isConnected && localStreamRef.current) {
+                localStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+                setIsMuted(true);
+            }
+        };
+
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("keyup", handleKeyUp);
+        window.addEventListener("blur", handleBlur);
 
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
             window.removeEventListener("keyup", handleKeyUp);
+            window.removeEventListener("blur", handleBlur);
         };
-    }, [isConnected, isMuted]); // Dependency on isMuted might cause re-bind, but logic needs current state. 
-    // Optimally, use ref for isMuted to avoid re-binding listeners.
-
-    const setupAudioAnalysis = (userId: string, stream: MediaStream) => {
-        if (!audioContextRef.current) return;
-        const source = audioContextRef.current.createMediaStreamSource(stream);
-        const analyser = audioContextRef.current.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser); // Do not connect to destination (speakers) else feedback loop? 
-        // Wait, remote streams SHOULD go to speakers. 
-        // We usually use <audio> element for playback. 
-        // If we use Web Audio API for playback, we connect to destination.
-        // If we use <audio> element, we don't need to connect source -> destination here, just source -> analyser.
-        // The <audio> element handles playback.
-        analysersRef.current.set(userId, analyser);
-    };
+    }, [isConnected, isMuted]);
 
     return (
         <VoiceContext.Provider value={{
