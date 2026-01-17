@@ -20,6 +20,14 @@ export function ParticipantsList() {
     }
   }, [projectId, refreshCollaborators]);
 
+  // DEBUG: Inspect API response structure
+  useEffect(() => {
+    if (currentCollaborators.length > 0) {
+      console.log("🐛 [ParticipantsList] Raw Collaborator Data:", currentCollaborators);
+      console.log("🐛 [ParticipantsList] First Item:", currentCollaborators[0]);
+    }
+  }, [currentCollaborators]);
+
   // Helper to generate avatar from email/name
   const getAvatar = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -86,6 +94,15 @@ export function ParticipantsList() {
             if (!participant) return null; // Safe guard
             const email = participant.email || "Unknown User";
             const color = getColor(email);
+
+            // Robust name derivation
+            const pAny = participant as any;
+            let rawName = participant.name || pAny.username;
+            if (!rawName && participant.email) rawName = participant.email.split('@')[0];
+            if (!rawName) rawName = "User";
+
+            const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
             return (
               <div
                 key={participant.userId || email}
@@ -113,11 +130,22 @@ export function ParticipantsList() {
 
                 {/* Name and role */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm truncate text-white/90">{participant.email}</div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-white/60 uppercase">
-                    {getRoleIcon(participant.role)}
-                    <span>{participant.role}</span>
-                    {participant.status === 'PENDING' && <span className="text-orange-400">(Pending)</span>}
+                  <div className="text-sm truncate text-white/90">
+                    {displayName}
+                  </div>
+                  {/* Show email as secondary if we derived the name or used a real name */}
+                  <div className="text-xs truncate text-white/50">{participant.email}</div>
+
+                  <div className="flex items-center gap-1.5 text-[10px] text-white/60 uppercase mt-0.5">
+                    {/* Only show Role label if NOT Collaborator (default) */}
+                    {participant.role !== 'COLLABORATOR' && (
+                      <>
+                        {getRoleIcon(participant.role)}
+                        <span>{participant.role}</span>
+                      </>
+                    )}
+                    {/* Always show Pending status */}
+                    {participant.status === 'PENDING' && <span className="text-orange-400 font-medium tracking-wide">(Pending)</span>}
                   </div>
                 </div>
 

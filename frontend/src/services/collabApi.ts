@@ -2,8 +2,15 @@ import api from "./api";
 
 // Types
 export interface Collaborator {
-    userId: string;
-    email: string;
+    userId?: string; // Legacy/Client-side alias
+    id?: string;     // Actual API field
+    email?: string;  // Actual API field might be missing, use nameOrEmail
+    nameOrEmail?: string; // Actual API field from debug output
+    name?: string;
+    fullName?: string;
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string;
     role: "OWNER" | "COLLABORATOR" | "VIEWER";
     status: "ACCEPTED" | "PENDING";
     invitedAt?: string;

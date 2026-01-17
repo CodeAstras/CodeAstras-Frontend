@@ -6,6 +6,14 @@ export function Header() {
 
   const navigate = useNavigate();
 
+  const token = localStorage.getItem("access_token");
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate('/');
+    window.location.reload(); // Ensure state is cleared
+  };
+
   const navItems = [
     {
       label: "Pricing",
@@ -15,13 +23,10 @@ export function Header() {
       label: "About",
       action: () => { }
     },
+    // Login / Logout Button
     {
-      label: "Dashboard",
-      action: () => navigate('/dashboard')
-    },
-    {
-      label: "Login",
-      action: () => navigate('/login'),
+      label: token ? "Log Out" : "Login",
+      action: token ? handleLogout : () => navigate('/login'),
       primary: true
     }
   ];

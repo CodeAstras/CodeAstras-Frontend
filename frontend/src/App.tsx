@@ -60,6 +60,9 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
+        {/* Public Profile - No interactions but visible */}
+        <Route path="/u/:username" element={<Profile />} />
+
         {/* OAuth callback (public) */}
         <Route path="/oauth-success" element={<OAuthSuccessPage />} />
       </Routes>
