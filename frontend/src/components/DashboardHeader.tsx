@@ -16,7 +16,7 @@ export function DashboardHeader() {
     return (
         <header className="fixed top-0 left-0 right-0 z-[100] bg-[#0f0f0f]/95 backdrop-blur-md border-b border-white/5 pointer-events-auto isolate">
             <div className="max-w-[1800px] mx-auto px-6 h-16 flex items-center justify-between">
-                <button onClick={() => navigate('/dashboard')} className="flex items-center gap-3 group">
+                <button onClick={() => navigate('/')} className="flex items-center gap-3 group">
                     <div className="relative">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#0ea5e9] flex items-center justify-center">
                             <Code2 className="w-5 h-5" />

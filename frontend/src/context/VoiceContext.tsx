@@ -98,11 +98,19 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.log(`📞 V1 Joining call for project: ${projectId}`);
         projectIdRef.current = projectId;
 
-        await initLocalStream();
+        try {
+            await initLocalStream();
 
-        voiceWs.connect(projectId, handleSignal);
-        setIsConnected(true);
-        toast.success("Joined voice channel");
+            // Correctly awaiting the connection Promise
+            await voiceWs.connect(projectId, handleSignal);
+
+            setIsConnected(true);
+            toast.success("Joined voice channel");
+        } catch (error) {
+            console.error("Failed to join voice call:", error);
+            toast.error("Failed to connect to voice server");
+            setIsConnected(false);
+        }
     }, [isConnected]);
 
     const leaveCall = useCallback(() => {
