@@ -39,7 +39,6 @@ export default function App() {
             <CollaborationProvider>
               <VoiceProvider>
                 <DashboardLayout />
-                <VoiceControlPanel />
               </VoiceProvider>
             </CollaborationProvider>
           </RequireAuth>

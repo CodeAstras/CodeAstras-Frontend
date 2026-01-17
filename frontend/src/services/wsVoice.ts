@@ -23,70 +23,83 @@ class VoiceWebSocketService {
     private projectId: string | null = null;
     private onSignal: ((signal: SignalMessage | CallParticipantsMessage) => void) | null = null;
 
-    connect(projectId: string, onSignal: (signal: SignalMessage | CallParticipantsMessage) => void) {
+    connect(projectId: string, onSignal: (signal: SignalMessage | CallParticipantsMessage) => void): Promise<void> {
         this.projectId = projectId;
         this.onSignal = onSignal;
 
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            console.error("No token found for voice WS");
-            return;
-        }
+        return new Promise((resolve, reject) => {
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                console.error("No token found for voice WS");
+                reject("No token");
+                return;
+            }
 
-        try {
-            const decoded = jwtDecode(token) as any;
-            this.userId = decoded.userId || decoded.sub;
-        } catch (e) {
-            console.error("Invalid token", e);
-            return;
-        }
+            try {
+                const decoded = jwtDecode(token) as any;
+                this.userId = decoded.userId || decoded.sub;
+            } catch (e) {
+                console.error("Invalid token", e);
+                reject("Invalid token");
+                return;
+            }
 
-        this.client = new Client({
-            webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
-            connectHeaders: {
-                Authorization: `Bearer ${token}`,
-            },
-            reconnectDelay: 5000,
-            debug: (str) => console.log(`[VoiceWS]: ${str}`),
-        });
+            this.client = new Client({
+                webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+                connectHeaders: {
+                    Authorization: `Bearer ${token}`,
+                },
+                reconnectDelay: 5000,
+                debug: (str) => console.log(`[VoiceWS]: ${str}`),
+                onStompError: (frame) => {
+                    console.error('Broker reported error: ' + frame.headers['message']);
+                    console.error('Additional details: ' + frame.body);
+                    reject(frame.headers['message']);
+                },
+                onWebSocketClose: () => {
+                    console.warn("Voice WebSocket closed");
+                }
+            });
 
-        this.client.onConnect = () => {
-            console.log("🟢 Voice WebSocket connected (V1).");
+            this.client.onConnect = () => {
+                console.log("🟢 Voice WebSocket connected (V1).");
+                resolve();
 
-            // Subscribe to project CALL topic
-            this.client?.subscribe(`/topic/project/${projectId}/call`, (message: IMessage) => {
-                if (this.onSignal) {
-                    try {
-                        const signal = JSON.parse(message.body);
-                        // Filter out own messages if backend echoes them
-                        // (Unless it's a Participants list which might include valid info)
-                        if (signal.senderId && signal.senderId === this.userId) {
-                            return;
+                // Subscribe to project CALL topic
+                this.client?.subscribe(`/topic/project/${projectId}/call`, (message: IMessage) => {
+                    if (this.onSignal) {
+                        try {
+                            const signal = JSON.parse(message.body);
+                            // Filter out own messages if backend echoes them
+                            // (Unless it's a Participants list which might include valid info)
+                            if (signal.senderId && signal.senderId === this.userId) {
+                                return;
+                            }
+                            this.onSignal(signal);
+                        } catch (e) {
+                            console.error("Error parsing voice signal", e);
                         }
-                        this.onSignal(signal);
-                    } catch (e) {
-                        console.error("Error parsing voice signal", e);
                     }
-                }
-            });
+                });
 
-            // Subscribe to User Queue for direct messages (if backend uses it for list)
-            this.client?.subscribe(`/user/queue/call`, (message: IMessage) => {
-                if (this.onSignal) {
-                    try {
-                        const msg = JSON.parse(message.body);
-                        this.onSignal(msg);
-                    } catch (e) {
-                        console.error("Error parsing user queue message", e);
+                // Subscribe to User Queue for direct messages (if backend uses it for list)
+                this.client?.subscribe(`/user/queue/call`, (message: IMessage) => {
+                    if (this.onSignal) {
+                        try {
+                            const msg = JSON.parse(message.body);
+                            this.onSignal(msg);
+                        } catch (e) {
+                            console.error("Error parsing user queue message", e);
+                        }
                     }
-                }
-            });
+                });
 
-            // Send Join Signal
-            this.sendSignal({ type: "CALL_JOIN", senderId: this.userId! });
-        };
+                // Send Join Signal
+                this.sendSignal({ type: "CALL_JOIN", senderId: this.userId! });
+            };
 
-        this.client.activate();
+            this.client.activate();
+        });
     }
 
     sendSignal(signal: Omit<SignalMessage, "payload"> & { payload?: any }) {
