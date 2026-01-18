@@ -11,7 +11,7 @@ import { VideoPanel } from "../components/workspace/VideoPanel";
 import { ParticipantsList } from "../components/workspace/ParticipantsList";
 import { ChatPanel } from "../components/workspace/ChatPanel";
 import { CosmicStars } from "../components/workspace/CosmicStars";
-import { MessageCircle, Video, Users, Sparkles, Settings } from "lucide-react";
+import { MessageCircle, Video, Users, Sparkles, Settings, GitBranch, Puzzle, X } from "lucide-react";
 
 type FileNode = {
   name: string;
@@ -37,14 +37,25 @@ api.interceptors.request.use((config) => {
 export default function Workspace() {
   const { projectId } = useParams();
 
-  const [fileExplorerOpen, setFileExplorerOpen] = useState(true);
-  const [terminalOpen, setTerminalOpen] = useState(false);
+  /* Left Panel Tools State */
+  type LeftTool = "explorer" | "git" | "extensions" | "ai" | "settings" | null;
+  const [activeLeftTool, setActiveLeftTool] = useState<LeftTool>("explorer");
 
+  const toggleLeftTool = (tool: LeftTool) => {
+    if (activeLeftTool === tool) {
+      setActiveLeftTool(null); // Toggle off if already active
+    } else {
+      setActiveLeftTool(tool);
+    }
+  };
+
+  /* Main Workspace State */
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
 
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const [runSignal, setRunSignal] = useState(0);
   const [runOutput, setRunOutput] = useState("");
   const [runExitCode, setRunExitCode] = useState<number | null>(null);
@@ -52,22 +63,28 @@ export default function Workspace() {
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [leftPanelWidth, setLeftPanelWidth] = useState(250);
 
-  type RightTool = "video" | "chat" | "collaborators" | "ai" | "settings";
-  const [activeTool, setActiveTool] = useState<RightTool>("video");
+
+  /* Right Panel Tools State */
+  type RightTool = "video" | "chat" | "collaborators" | "ai" | "settings" | null;
+  const [activeTool, setActiveTool] = useState<RightTool>("collaborators");
+
+  const toggleRightTool = (tool: RightTool) => {
+    if (activeTool === tool) {
+      setActiveTool(null);
+    } else {
+      setActiveTool(tool);
+    }
+  };
 
   /* Project Name Management */
   const location = useLocation();
   const state = location.state as { projectName?: string } | null;
-  // Initialize with passed state, or "Loading..." (or empty) to prevent flash of wrong name
   const [projectName, setProjectName] = useState<string>(state?.projectName || "Loading...");
 
   useEffect(() => {
-    // If name is missing (e.g. direct URL load), fetch it
     const fetchProjectName = async () => {
       if (!projectId) return;
       try {
-        // If we already have it from nav state, don't refetch immediately unless we want to ensure freshness
-        // But for this requirement, if it's "Loading..." or we just want to be sure:
         if (projectName === "Loading..." || !state?.projectName) {
           const res = await api.get(`/projects/${projectId}`);
           setProjectName(res.data.name);
@@ -77,7 +94,6 @@ export default function Workspace() {
         setProjectName("CodeAstras Workspace");
       }
     };
-
     fetchProjectName();
   }, [projectId]);
 
@@ -109,7 +125,6 @@ export default function Workspace() {
     if (activeFile === path) {
       const remaining = openFiles.filter((p) => p !== path);
       if (remaining.length > 0) {
-        // Switch to the last opened file
         openFile(remaining[remaining.length - 1]);
       } else {
         setActiveFile(null);
@@ -120,49 +135,33 @@ export default function Workspace() {
 
   const saveFile = async (content: string) => {
     if (!projectId || !activeFile) return;
-
     setFileContent(content);
-
     await api.put(
       `/projects/${projectId}/file`,
       content,
       {
         params: { path: activeFile },
-        headers: {
-          "Content-Type": "text/plain",
-        },
+        headers: { "Content-Type": "text/plain" },
       }
     );
   };
 
-
   const createEntry = async (path: string, type: "FILE" | "FOLDER") => {
     if (!projectId) return;
-
-    await api.post(`/projects/${projectId}/files`, {
-      path,
-      type,
-    });
-
+    await api.post(`/projects/${projectId}/files`, { path, type });
     await loadTree();
   };
 
   const deleteEntry = async (path: string) => {
     if (!projectId) return;
-
-    await api.delete(`/projects/${projectId}/file`, {
-      params: { path },
-    });
-
+    await api.delete(`/projects/${projectId}/file`, { params: { path } });
     if (activeFile === path) {
       setActiveFile(null);
       setFileContent("");
     }
-
     await loadTree();
   };
 
-  // Load tree initially
   useEffect(() => {
     loadTree();
   }, [projectId]);
@@ -172,20 +171,16 @@ export default function Workspace() {
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = rightPanelWidth;
-
     document.body.style.cursor = "col-resize";
-
     const onMove = (ev: MouseEvent) => {
       const delta = startX - ev.clientX; // Dragging left increases width
       setRightPanelWidth(Math.min(Math.max(startWidth + delta, 260), 600));
     };
-
     const onUp = () => {
       document.body.style.cursor = "default";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
@@ -195,20 +190,16 @@ export default function Workspace() {
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = leftPanelWidth;
-
     document.body.style.cursor = "col-resize";
-
     const onMove = (ev: MouseEvent) => {
-      const delta = ev.clientX - startX; // Dragging right increases width
+      const delta = ev.clientX - startX;
       setLeftPanelWidth(Math.min(Math.max(startWidth + delta, 200), 500));
     };
-
     const onUp = () => {
       document.body.style.cursor = "default";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
@@ -220,19 +211,88 @@ export default function Workspace() {
       <div className="flex h-screen overflow-hidden">
         <div className="flex flex-1 min-w-0">
           <div className="hidden md:block h-full">
-            <IntegrationsSidebar />
+            <IntegrationsSidebar
+              activeTool={activeLeftTool}
+              onSelectTool={setActiveLeftTool}
+            />
           </div>
 
-          {fileExplorerOpen && (
-            <div style={{ width: leftPanelWidth }} className="flex-shrink-0 flex">
-              <div className="flex-1 overflow-hidden">
-                <FileExplorer
-                  tree={fileTree}
-                  onSelect={openFile}
-                  onCreate={createEntry}
-                  onDelete={deleteEntry}
-                  onClose={() => setFileExplorerOpen(false)}
-                />
+          {activeLeftTool && (
+            <div style={{ width: leftPanelWidth }} className="flex-shrink-0 flex bg-[#0f0f0f] border-r border-white/5">
+              <div className="flex-1 overflow-hidden flex flex-col">
+                {activeLeftTool === "explorer" && (
+                  <FileExplorer
+                    tree={fileTree}
+                    onSelect={openFile}
+                    onCreate={createEntry}
+                    onDelete={deleteEntry}
+                    onClose={() => setActiveLeftTool(null)}
+                  />
+                )}
+
+                {activeLeftTool === "git" && (
+                  <div className="flex flex-col h-full w-full">
+                    <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+                      <span className="text-xs font-semibold tracking-wide text-white/60">SOURCE CONTROL</span>
+                      <button onClick={() => setActiveLeftTool(null)} className="hover:bg-white/10 p-1 rounded"><X className="w-4 h-4 text-white/60" /></button>
+                    </div>
+                    <div className="flex flex-col items-center justify-center flex-1 text-center p-6 text-white/50">
+                      <GitBranch className="w-12 h-12 mb-4 opacity-50" />
+                      <h3 className="text-lg font-bold text-white mb-2">Git Disconnected</h3>
+                      <p className="text-sm">Git is taking a coffee break. <br />(Coming Soon)</p>
+                    </div>
+                  </div>
+                )}
+
+                {activeLeftTool === "extensions" && (
+                  <div className="flex flex-col h-full w-full">
+                    <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+                      <span className="text-xs font-semibold tracking-wide text-white/60">EXTENSIONS</span>
+                      <button onClick={() => setActiveLeftTool(null)} className="hover:bg-white/10 p-1 rounded"><X className="w-4 h-4 text-white/60" /></button>
+                    </div>
+                    <div className="flex flex-col items-center justify-center flex-1 text-center p-6 text-white/50">
+                      <Puzzle className="w-12 h-12 mb-4 opacity-50" />
+                      <h3 className="text-lg font-bold text-white mb-2">No Extensions</h3>
+                      <p className="text-sm">Who needs extensions when you have raw talent? <br />(Coming Soon)</p>
+                    </div>
+                  </div>
+                )}
+
+                {activeLeftTool === "ai" && (
+                  <div className="flex flex-col h-full w-full">
+                    <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+                      <span className="text-xs font-semibold tracking-wide text-white/60">AI ASSISTANT</span>
+                      <button onClick={() => setActiveLeftTool(null)} className="hover:bg-white/10 p-1 rounded"><X className="w-4 h-4 text-white/60" /></button>
+                    </div>
+                    <div className="flex flex-col items-center justify-center flex-1 text-center p-6 text-white/60">
+                      <Sparkles className="w-12 h-12 mb-4 text-[#7c3aed] animate-pulse" />
+                      <h3 className="text-lg font-bold text-white mb-2">Agent Coming Soon</h3>
+                      <p className="text-sm">
+                        The AI Agent is stuck in traffic.
+                        <br />
+                        <span className="opacity-50 text-xs block mt-2">(Coming Soon!)</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {activeLeftTool === "settings" && (
+                  <div className="flex flex-col h-full w-full">
+                    <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+                      <span className="text-xs font-semibold tracking-wide text-white/60">SETTINGS</span>
+                      <button onClick={() => setActiveLeftTool(null)} className="hover:bg-white/10 p-1 rounded"><X className="w-4 h-4 text-white/60" /></button>
+                    </div>
+                    <div className="flex flex-col items-center justify-center flex-1 text-center p-6 text-white/60">
+                      <Settings className="w-12 h-12 mb-4 text-emerald-500 animate-[spin_5s_linear_infinite]" />
+                      <h3 className="text-lg font-bold text-white mb-2">No Settings Here!</h3>
+                      <p className="text-sm">
+                        The code is already perfect.
+                        <br />
+                        <span className="opacity-50 text-xs block mt-2">(Just kidding, coming soon!)</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
               <div
                 className="w-1 cursor-col-resize hover:bg-white/20 active:bg-blue-500/50 transition-colors"
@@ -282,30 +342,96 @@ export default function Workspace() {
           </div>
         </div>
 
-        <div
-          className="w-1 cursor-col-resize bg-white/5 hover:bg-white/20 active:bg-blue-500/50 transition-colors"
-          onMouseDown={handleRightDragMouseDown}
-        />
+        {activeTool && (
+          <div
+            className="w-1 cursor-col-resize bg-white/5 hover:bg-white/20 active:bg-blue-500/50 transition-colors"
+            onMouseDown={handleRightDragMouseDown}
+          />
+        )}
 
-        <div
-          className="flex h-full flex-shrink-0 bg-[#0f0f0f] border-l border-white/5"
-          style={{ width: rightPanelWidth }}
-        >
-          <div className="flex-1 overflow-hidden">
-            {activeTool === "video" && <VideoPanel mode="video" onModeChange={() => { }} />}
-            {activeTool === "chat" && <ChatPanel />}
-            {activeTool === "collaborators" && <ParticipantsList />}
-            {activeTool === "ai" && <div className="p-4 text-white/70">AI Assistant</div>}
-            {activeTool === "settings" && <div className="p-4 text-white/70">Settings</div>}
+        {/* Right Panel Content */}
+        {activeTool && (
+          <div
+            className="flex h-full flex-shrink-0 bg-[#0f0f0f] border-l border-white/5"
+            style={{ width: rightPanelWidth }}
+          >
+            <div className="flex-1 overflow-hidden">
+              {activeTool === "video" && <VideoPanel mode="video" onModeChange={() => { }} />}
+              {activeTool === "chat" && <ChatPanel />}
+              {activeTool === "collaborators" && <ParticipantsList />}
+              {activeTool === "ai" && (
+                <div className="flex flex-col h-full w-full">
+                  <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+                    <span className="text-xs font-semibold tracking-wide text-white/60">AI ASSISTANT</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center flex-1 text-center p-6 text-white/60">
+                    <Sparkles className="w-12 h-12 mb-4 text-[#7c3aed] animate-pulse" />
+                    <h3 className="text-lg font-bold text-white mb-2">Agent Coming Soon</h3>
+                    <p className="text-sm">
+                      The AI Agent is stuck in traffic.
+                      <br />
+                      <span className="opacity-50 text-xs block mt-2">(Coming Soon!)</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+              {activeTool === "settings" && (
+                <div className="flex flex-col h-full w-full">
+                  <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+                    <span className="text-xs font-semibold tracking-wide text-white/60">SETTINGS</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center flex-1 text-center p-6 text-white/60">
+                    <Settings className="w-12 h-12 mb-4 text-emerald-500 animate-[spin_5s_linear_infinite]" />
+                    <h3 className="text-lg font-bold text-white mb-2">No Settings Here!</h3>
+                    <p className="text-sm">
+                      The code is already perfect.
+                      <br />
+                      <span className="opacity-50 text-xs block mt-2">(Just kidding, coming soon!)</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+        )}
 
-          <div className="flex flex-col items-center gap-4 w-14 py-4 border-l border-white/10">
-            <button onClick={() => setActiveTool("video")}><Video /></button>
-            <button onClick={() => setActiveTool("chat")}><MessageCircle /></button>
-            <button onClick={() => setActiveTool("collaborators")}><Users /></button>
-            <button onClick={() => setActiveTool("ai")}><Sparkles /></button>
-            <button onClick={() => setActiveTool("settings")}><Settings /></button>
-          </div>
+        {/* Right Panel Icons (Always Visible) */}
+        <div className="flex flex-col items-center gap-4 w-14 py-4 border-l border-white/10 bg-[#0a0a0a]">
+          <button
+            onClick={() => toggleRightTool("collaborators")}
+            title="Collaborators"
+            className={`p-2 rounded-xl transition-all ${activeTool === "collaborators" ? "bg-blue-500/20 text-blue-400" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+          >
+            <Users size={20} />
+          </button>
+          <button
+            onClick={() => toggleRightTool("chat")}
+            title="Chat"
+            className={`p-2 rounded-xl transition-all ${activeTool === "chat" ? "bg-blue-500/20 text-blue-400" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+          >
+            <MessageCircle size={20} />
+          </button>
+          <button
+            onClick={() => toggleRightTool("video")}
+            title="Video Call"
+            className={`p-2 rounded-xl transition-all ${activeTool === "video" ? "bg-blue-500/20 text-blue-400" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+          >
+            <Video size={20} />
+          </button>
+          <button
+            onClick={() => toggleRightTool("ai")}
+            title="AI Assistant"
+            className={`p-2 rounded-xl transition-all ${activeTool === "ai" ? "bg-blue-500/20 text-blue-400" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+          >
+            <Sparkles size={20} />
+          </button>
+          <button
+            onClick={() => toggleRightTool("settings")}
+            title="Settings"
+            className={`p-2 rounded-xl transition-all ${activeTool === "settings" ? "bg-blue-500/20 text-blue-400" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+          >
+            <Settings size={20} />
+          </button>
         </div>
       </div>
     </div>

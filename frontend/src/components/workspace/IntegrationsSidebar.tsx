@@ -1,54 +1,97 @@
-import { GitBranch, Play, Puzzle, Settings, Sparkles } from 'lucide-react';
+import { GitBranch, Puzzle, Settings, Sparkles, FolderOpen } from 'lucide-react';
 
-export function IntegrationsSidebar() {
-  const integrations = [
-    { icon: GitBranch, label: 'Git', active: false },
-    { icon: Play, label: 'Run', active: false },
-    { icon: Puzzle, label: 'Extensions', active: false },
-    { icon: Sparkles, label: 'AI Assist', active: true },
-    { icon: Settings, label: 'Settings', active: false },
-  ];
+type IntegrationsSidebarProps = {
+  activeTool: "explorer" | "git" | "extensions" | "ai" | "settings" | null;
+  onSelectTool: (tool: "explorer" | "git" | "extensions" | "ai" | "settings" | null) => void;
+};
 
-  const topIntegrations = integrations.filter(i => i.label !== 'Settings');
-  const bottomIntegrations = integrations.filter(i => i.label === 'Settings');
+export function IntegrationsSidebar({ activeTool, onSelectTool }: IntegrationsSidebarProps) {
+
+  const handleToolClick = (tool: "explorer" | "git" | "extensions" | "ai" | "settings") => {
+    if (activeTool === tool) {
+      onSelectTool(null); // Toggle off
+    } else {
+      onSelectTool(tool);
+    }
+  };
 
   return (
-    <div className="w-16 h-full bg-[#0f0f0f] border-r border-white/5 flex flex-col items-center py-4 gap-4">
-      {topIntegrations.map((item) => {
-        const Icon = item.icon;
-        return (
-          <button
-            key={item.label}
-            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${item.active
-                ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
-                : 'hover:bg-white/10 text-white/60 hover:text-white'
-              }`}
-            title={item.label}
-          >
-            <Icon className="w-5 h-5" />
-            {item.active && (
-              <div className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#7c3aed] to-[#0ea5e9] rounded-r" />
-            )}
-          </button>
-        );
-      })}
+    <div className="w-14 h-full bg-[#0f0f0f] border-r border-white/5 flex flex-col items-center py-4 gap-4">
+      {/* Explorer */}
+      <button
+        onClick={() => handleToolClick('explorer')}
+        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${activeTool === 'explorer'
+            ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
+            : 'hover:bg-white/10 text-white/60 hover:text-white'
+          }`}
+        title="Explorer"
+      >
+        <FolderOpen className="w-5 h-5" />
+        {activeTool === 'explorer' && (
+          <div className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#7c3aed] to-[#0ea5e9] rounded-r" />
+        )}
+      </button>
+
+      {/* Git */}
+      <button
+        onClick={() => handleToolClick('git')}
+        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${activeTool === 'git'
+            ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
+            : 'hover:bg-white/10 text-white/60 hover:text-white'
+          }`}
+        title="Git"
+      >
+        <GitBranch className="w-5 h-5" />
+        {activeTool === 'git' && (
+          <div className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#7c3aed] to-[#0ea5e9] rounded-r" />
+        )}
+      </button>
+
+      {/* Extensions */}
+      <button
+        onClick={() => handleToolClick('extensions')}
+        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${activeTool === 'extensions'
+            ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
+            : 'hover:bg-white/10 text-white/60 hover:text-white'
+          }`}
+        title="Extensions"
+      >
+        <Puzzle className="w-5 h-5" />
+        {activeTool === 'extensions' && (
+          <div className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#7c3aed] to-[#0ea5e9] rounded-r" />
+        )}
+      </button>
+
+      {/* AI Assist */}
+      <button
+        onClick={() => handleToolClick('ai')}
+        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${activeTool === 'ai'
+            ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
+            : 'hover:bg-white/10 text-white/60 hover:text-white'
+          }`}
+        title="AI Assist"
+      >
+        <Sparkles className={`w-5 h-5 ${activeTool !== 'ai' ? 'group-hover:text-[#7c3aed] transition-colors' : ''}`} />
+        {activeTool === 'ai' && (
+          <div className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#7c3aed] to-[#0ea5e9] rounded-r" />
+        )}
+      </button>
 
       <div className="mt-auto flex flex-col gap-4">
-        {bottomIntegrations.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.label}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${item.active
-                  ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
-                  : 'hover:bg-white/10 text-white/60 hover:text-white'
-                }`}
-              title={item.label}
-            >
-              <Icon className="w-5 h-5" />
-            </button>
-          );
-        })}
+        {/* Settings */}
+        <button
+          onClick={() => handleToolClick('settings')}
+          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 group relative ${activeTool === 'settings'
+              ? 'bg-gradient-to-br from-[#7c3aed]/20 to-[#0ea5e9]/20 text-[#0ea5e9] shadow-lg shadow-[#7c3aed]/20'
+              : 'hover:bg-white/10 text-white/60 hover:text-white'
+            }`}
+          title="Settings"
+        >
+          <Settings className="w-5 h-5" />
+          {activeTool === 'settings' && (
+            <div className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#7c3aed] to-[#0ea5e9] rounded-r" />
+          )}
+        </button>
       </div>
     </div>
   );

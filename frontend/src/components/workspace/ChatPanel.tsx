@@ -29,10 +29,6 @@ export function ChatPanel() {
     };
 
     const handleHistory = (history: ChatMessage[]) => {
-      // History comes in reverse chronological (newest first) usually? 
-      // Backend query was "ORDER BY m.createdAt DESC" -> Newest first.
-      // So detailed UI should display oldest at top. 
-      // Let's reverse them for display.
       setMessages([...history].reverse());
     };
 
@@ -58,6 +54,11 @@ export function ChatPanel() {
 
   return (
     <div className="flex-1 flex flex-col bg-[#0f0f0f] h-full">
+      {/* Header */}
+      <div className="px-3 py-2 flex items-center justify-between border-b border-white/5 bg-[#0f0f0f]">
+        <span className="text-xs font-semibold tracking-wide text-white/60">PROJECT CHAT</span>
+      </div>
+
       {/* Tab bar */}
       <div className="flex items-center border-b border-white/5 flex-shrink-0">
         {tabs.map((tab) => {
@@ -67,8 +68,8 @@ export function ChatPanel() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm transition-colors relative ${activeTab === tab.id
-                  ? 'text-white'
-                  : 'text-white/60 hover:text-white/90'
+                ? 'text-white'
+                : 'text-white/60 hover:text-white/90'
                 }`}
             >
               <Icon className="w-4 h-4" />
@@ -87,7 +88,7 @@ export function ChatPanel() {
           <div className="p-4 space-y-4">
             {messages.map((msg, idx) => {
               const isSystem = msg.type === "SYSTEM";
-              const isMe = msg.senderName === localStorage.getItem("username"); // Quick check, ideally use ID
+              const isMe = msg.senderName === localStorage.getItem("username");
 
               if (isSystem) {
                 return (
@@ -99,7 +100,6 @@ export function ChatPanel() {
                 )
               }
 
-              // Generate a consistent color based on sender name
               const colorHash = msg.senderName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
               const colors = ['#2BCBFF', '#B043FF', '#3DF6FF', '#FF4365', '#52FF43'];
               const userColor = colors[colorHash % colors.length];

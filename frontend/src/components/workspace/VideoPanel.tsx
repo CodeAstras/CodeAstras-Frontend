@@ -127,6 +127,11 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] relative font-sans">
+      {/* Header */}
+      <div className="px-3 py-2 flex items-center justify-between border-b border-white/5 bg-[#0f0f0f]">
+        <span className="text-xs font-semibold tracking-wide text-white/60">VIDEO & VOICE</span>
+      </div>
+
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-green-500 animate-pulse" : "bg-red-500")} />

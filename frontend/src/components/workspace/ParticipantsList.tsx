@@ -119,10 +119,12 @@ export function ParticipantsList() {
     <div className="border-b border-white/5 bg-[#0f0f0f] h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
-        <div className="text-sm text-white/90">Project Collaborators</div>
-        <button className="p-2 hover:bg-white/10 rounded transition-colors" title="Invite user" onClick={() => setShowInvite(true)}>
-          <UserPlus className="w-4 h-4 text-white/60" />
-        </button>
+        <div className="text-xs font-semibold tracking-wide text-white/60 uppercase">COLLABORATORS</div>
+        <div className="flex items-center gap-1">
+          <button className="p-1 hover:bg-white/10 rounded transition-colors" title="Invite user" onClick={() => setShowInvite(true)}>
+            <UserPlus className="w-4 h-4 text-white/60" />
+          </button>
+        </div>
       </div>
 
       {/* Participants list */}
@@ -292,8 +294,8 @@ export function ParticipantsList() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     className={`relative p-3 rounded-xl border transition-all duration-200 text-left group overflow-hidden ${inviteRole === 'COLLABORATOR'
-                        ? 'bg-[#7c3aed]/10 border-[#7c3aed] ring-1 ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.15)]'
-                        : 'bg-[#18181b] border-white/5 hover:border-white/10 hover:bg-[#202023]'
+                      ? 'bg-[#7c3aed]/10 border-[#7c3aed] ring-1 ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.15)]'
+                      : 'bg-[#18181b] border-white/5 hover:border-white/10 hover:bg-[#202023]'
                       }`}
                     onClick={() => setInviteRole('COLLABORATOR')}
                   >
@@ -311,8 +313,8 @@ export function ParticipantsList() {
 
                   <button
                     className={`relative p-3 rounded-xl border transition-all duration-200 text-left group overflow-hidden ${inviteRole === 'VIEWER'
-                        ? 'bg-[#7c3aed]/10 border-[#7c3aed] ring-1 ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.15)]'
-                        : 'bg-[#18181b] border-white/5 hover:border-white/10 hover:bg-[#202023]'
+                      ? 'bg-[#7c3aed]/10 border-[#7c3aed] ring-1 ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.15)]'
+                      : 'bg-[#18181b] border-white/5 hover:border-white/10 hover:bg-[#202023]'
                       }`}
                     onClick={() => setInviteRole('VIEWER')}
                   >

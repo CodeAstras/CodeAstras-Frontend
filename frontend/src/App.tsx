@@ -26,9 +26,12 @@ import DashboardLayout from "./components/layouts/DashboardLayout";
 
 
 
+import { Toaster } from "sonner";
+
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-center" richColors theme="dark" />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<About />} />
