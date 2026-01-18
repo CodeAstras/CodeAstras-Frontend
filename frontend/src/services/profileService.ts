@@ -14,6 +14,7 @@ export interface UserProfile {
         projects: number;
         roomsJoined: number;
         contributions: number;
+        streak: number;
     }
 }
 
@@ -71,9 +72,23 @@ export const profileService = {
     },
 
     // 1.5 Update Avatar
-    updateAvatar: async (data: AvatarUpdateDTO): Promise<void> => {
+    // 1.5 Update Avatar (Auto-upload)
+    updateAvatar: async (file: File): Promise<UserProfile> => {
         try {
-            await api.put('/api/profiles/me/avatar', data);
+            const formData = new FormData();
+            formData.append("file", file);
+
+            // Explicitly attach token to ensure it's not lost during FormData handling
+            const token = localStorage.getItem("access_token");
+            const headers: Record<string, string> = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await api.put('/api/profiles/me/avatar', formData, {
+                headers
+            });
+            return response.data;
         } catch (error) {
             throw handleApiError(error);
         }

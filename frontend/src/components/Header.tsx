@@ -17,11 +17,11 @@ export function Header() {
   const navItems = [
     {
       label: "Pricing",
-      action: () => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })
+      action: () => navigate('/pricing')
     },
     {
       label: "About",
-      action: () => { }
+      action: () => navigate('/about')
     },
     // Login / Logout Button
     {

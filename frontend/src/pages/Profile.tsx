@@ -223,7 +223,15 @@ export default function Profile() {
           {(activeTab === 'profile' || !isMe) && (
             <div className="space-y-8">
               <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl overflow-hidden">
-                <ProfileBanner />
+                <ProfileBanner
+                  username={profile.username}
+                  stats={{
+                    projects: projectCount,
+                    contributions: profile.stats?.contributions || 0,
+                    streak: profile.stats?.streak || 0,
+                    roomsJoined: profile.stats?.roomsJoined || 0
+                  }}
+                />
 
                 <div className="px-8 pb-8">
                   <div className="flex items-start gap-6 -mt-16 mb-6">

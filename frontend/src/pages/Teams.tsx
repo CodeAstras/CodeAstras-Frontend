@@ -21,16 +21,17 @@ export default function Teams() {
                 </button>
             </div>
 
-            {teams.length === 0 ? (
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
-                    <div className="text-white/40 font-medium text-lg">No teams created yet</div>
-                    <div className="text-sm text-white/20">Create a team to organize projects and members</div>
+            <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-[#0ea5e9] to-[#06b6d4] bg-clip-text text-transparent">
+                    Coming Soon
+                </h2>
+                <div className="text-white/40 font-medium text-lg max-w-md">
+                    Team Management is on its way.
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Team list mapping */}
+                <div className="text-sm text-white/20">
+                    Organize your squads and manage permissions efficiently. Launching soon!
                 </div>
-            )}
+            </div>
         </main>
     );
 }

@@ -27,16 +27,17 @@ export default function Rooms() {
                 </button>
             </div>
 
-            {rooms.length === 0 ? (
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
-                    <div className="text-white/40 font-medium text-lg">No active rooms</div>
-                    <div className="text-sm text-white/20">Create a room to start collaborating with your team</div>
+            <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] bg-clip-text text-transparent">
+                    Coming Soon
+                </h2>
+                <div className="text-white/40 font-medium text-lg max-w-md">
+                    Collaboration Rooms are currently under construction.
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Room list mapping would go here */}
+                <div className="text-sm text-white/20">
+                    We're building a space for you to code together in real-time. Stay tuned!
                 </div>
-            )}
+            </div>
         </main>
     );
 }

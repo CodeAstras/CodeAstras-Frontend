@@ -57,16 +57,21 @@ export default function ProfileSettings({ currentUser, onProfileUpdate }: Profil
         const objectUrl = URL.createObjectURL(file);
         setFormData(prev => ({ ...prev, avatarUrl: objectUrl }));
 
-        // Upload
-        const toastId = toast.loading("Uploading avatar...");
+        // Upload & Update in one go
+        const toastId = toast.loading("Updating avatar...");
         try {
-            const url = await uploadService.uploadFile(file);
-            setFormData(prev => ({ ...prev, avatarUrl: url }));
-            toast.success("Avatar uploaded", { id: toastId });
-        } catch (error) {
-            console.error("Upload failed", error);
-            toast.error("Failed to upload avatar", { id: toastId });
-            // Revert
+            // Direct call to profile endpoint with file
+            const updatedProfile: UserProfile = await profileService.updateAvatar(file);
+
+            setFormData(prev => ({ ...prev, avatarUrl: updatedProfile.avatarUrl }));
+            toast.success("Avatar updated successfully", { id: toastId });
+
+            // Refresh parent state
+            onProfileUpdate();
+        } catch (error: any) {
+            console.error("Avatar update failed", error);
+            toast.error(error.message || "Failed to update avatar", { id: toastId });
+            // Revert preview on error
             setFormData(prev => ({ ...prev, avatarUrl: currentUser.avatarUrl }));
         }
     };
@@ -92,18 +97,9 @@ export default function ProfileSettings({ currentUser, onProfileUpdate }: Profil
                 success = true;
             }
 
-            // 2. Update Avatar (if changed)
-            if (formData.avatarUrl !== currentUser.avatarUrl) {
-                try {
-                    await profileService.updateAvatar({ avatarUrl: formData.avatarUrl });
-                    success = true;
-                } catch (avatarErr: any) {
-                    console.error("Avatar update failed", avatarErr);
-                    toast.error("Profile info saved, but failed to update avatar.");
-                }
-            }
+            // 2. Avatar is handled immediately on selection, no need to save here.
 
-            if (success || (!isDirty && success === false)) {
+            if (success) {
                 toast.success('Profile settings saved');
                 await onProfileUpdate();
             }

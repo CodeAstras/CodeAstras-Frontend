@@ -53,6 +53,7 @@ export default function Dashboard() {
     const [projectsError, setProjectsError] = useState<string | null>(null);
     const [showAllProjects, setShowAllProjects] = useState(false);
 
+
     // Dynamic Friends State
     const [recentCollaborators, setRecentCollaborators] = useState<Friend[]>([]);
     const [loadingCollaborators, setLoadingCollaborators] = useState(false);
@@ -66,6 +67,29 @@ export default function Dashboard() {
     };
 
     const getAvatar = (email: string) => email.substring(0, 2).toUpperCase();
+
+    // --- RECENT ACCESS TRACKING ---
+    const updateRecentAccess = (projectId: string) => {
+        try {
+            const raw = localStorage.getItem("recent_projects");
+            const data = raw ? JSON.parse(raw) : {};
+            data[projectId] = Date.now();
+            localStorage.setItem("recent_projects", JSON.stringify(data));
+        } catch (e) {
+            console.error("Failed to update recent access", e);
+        }
+    };
+
+    const getRecentAccess = (projectId: string): number => {
+        try {
+            const raw = localStorage.getItem("recent_projects");
+            const data = raw ? JSON.parse(raw) : {};
+            return data[projectId] || 0;
+        } catch (e) {
+            return 0;
+        }
+    };
+    // ----------------------------
 
     // Fetch Friends (Aggregated from recent projects)
     const fetchRecentCollaborators = async (currentProjects: DashboardProject[]) => {
@@ -201,6 +225,8 @@ export default function Dashboard() {
             const created = jsonResponse || {};
             console.log("✅ Project created successfully:", created);
 
+            updateRecentAccess(created.id); // 🔥 Update access time
+
             navigate(`/editor/${created.id}`);
         } catch (err: any) {
             // 8️⃣ Final catch-all with detailed console log
@@ -252,10 +278,15 @@ export default function Dashboard() {
                 updatedAt: p.updatedAt || p.updated_at || p.createdAt || p.created_at || "",
             }));
 
-            // sort newest first
-            mapped.sort((a, b) =>
-                new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-            );
+            // sort by newest (local access or server modification)
+            mapped.sort((a, b) => {
+                const aDate = new Date(a.updatedAt).getTime();
+                const bDate = new Date(b.updatedAt).getTime();
+
+                const aTime = Math.max(isNaN(aDate) ? 0 : aDate, getRecentAccess(a.id));
+                const bTime = Math.max(isNaN(bDate) ? 0 : bDate, getRecentAccess(b.id));
+                return bTime - aTime;
+            });
 
             setProjects(mapped);
 
@@ -269,6 +300,7 @@ export default function Dashboard() {
             setLoadingProjects(false);
         }
     };
+
 
     const { lastUpdate } = useCollab();
 
@@ -389,15 +421,13 @@ export default function Dashboard() {
                                 Your Projects
                             </h2>
                             <div className="flex items-center gap-2">
-                                {projects.length > 4 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAllProjects(prev => !prev)}
-                                        className="px-3 py-2 text-sm text-white/70 hover:text-white/90 hover:bg-white/5 rounded-lg transition"
-                                    >
-                                        {showAllProjects ? "Show less" : "See all"}
-                                    </button>
-                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/my-projects')}
+                                    className="px-3 py-2 text-sm text-white/70 hover:text-white/90 hover:bg-white/5 rounded-lg transition"
+                                >
+                                    See all
+                                </button>
                                 <button
                                     onClick={() => setIsCreateModalOpen(true)}
                                     className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-all flex items-center gap-2"
@@ -438,7 +468,10 @@ export default function Dashboard() {
                                 <div
                                     key={project.id}
                                     className="group relative bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 hover:border-[#7c3aed]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#7c3aed]/10 cursor-pointer"
-                                    onClick={() => navigate(`/editor/${project.id}`)}
+                                    onClick={() => {
+                                        updateRecentAccess(project.id);
+                                        navigate(`/editor/${project.id}`);
+                                    }}
                                 >
                                     <div className="relative z-10">
                                         <div className="flex items-start justify-between mb-4">

@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { useCollab } from '../../context/CollaborationContext';
 import { collabApi } from '../../services/collabApi';
 import { toast } from 'sonner';
+import { profileService } from '../../services/profileService';
 
 export function ParticipantsList() {
   const { projectId } = useParams();
@@ -13,6 +14,7 @@ export function ParticipantsList() {
   const [inviteInput, setInviteInput] = useState('');
   const [inviteRole, setInviteRole] = useState<'COLLABORATOR' | 'VIEWER'>('COLLABORATOR');
   const [isInviting, setInviting] = useState(false);
+  const [collaboratorNames, setCollaboratorNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (projectId) {
@@ -20,12 +22,43 @@ export function ParticipantsList() {
     }
   }, [projectId, refreshCollaborators]);
 
-  // DEBUG: Inspect API response structure
   useEffect(() => {
+    const fetchProfiles = async () => {
+      const newNames: Record<string, string> = {};
+      const promises = currentCollaborators.map(async (c) => {
+        const realId = c.id || c.userId;
+        if (!realId) return;
+
+        // If we don't have a name cached for this ID yet
+        if (!collaboratorNames[realId]) {
+          try {
+            let targetUsername = c.username;
+            if (!targetUsername && c.email) targetUsername = c.email.split('@')[0];
+            if (!targetUsername && c.nameOrEmail && c.nameOrEmail.includes('@')) targetUsername = c.nameOrEmail.split('@')[0];
+
+            if (targetUsername) {
+              const profile = await profileService.getPublicProfile(targetUsername);
+              if (profile.displayName) {
+                newNames[realId] = profile.displayName;
+              }
+            }
+          } catch (err) {
+            // Low noise error
+          }
+        }
+      });
+
+      await Promise.all(promises);
+
+      if (Object.keys(newNames).length > 0) {
+        setCollaboratorNames(prev => ({ ...prev, ...newNames }));
+      }
+    };
+
     if (currentCollaborators.length > 0) {
-      console.log("🐛 [ParticipantsList] ALL Collaborators:", currentCollaborators);
+      fetchProfiles();
     }
-  }, [currentCollaborators]);
+  }, [currentCollaborators]); // Removed dependency on collaboratorNames to avoid loop, simple check inside
 
   // Helper to generate avatar from email/name
   const getAvatar = (email: string) => {
@@ -97,7 +130,10 @@ export function ParticipantsList() {
 
             // Robust name derivation
             const pAny = participant as any;
-            let rawName = participant.name || participant.fullName || participant.displayName || participant.username || pAny.username;
+            // Check fetching cache first, then API fields
+            const fetchedDisplayName = collaboratorNames[realId];
+
+            let rawName = fetchedDisplayName || pAny.display_name || participant.displayName || pAny.full_name || participant.fullName || participant.name || participant.username || pAny.username;
 
             // If explicit name missing, fallback to nameOrEmail
             if (!rawName && participant.nameOrEmail) {

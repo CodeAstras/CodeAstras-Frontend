@@ -41,6 +41,7 @@ export default function Workspace() {
   const [terminalOpen, setTerminalOpen] = useState(false);
 
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
+  const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
 
@@ -69,12 +70,30 @@ export default function Workspace() {
   const openFile = async (path: string) => {
     if (!projectId) return;
 
+    if (!openFiles.includes(path)) {
+      setOpenFiles((prev) => [...prev, path]);
+    }
+
     const res = await api.get(`/projects/${projectId}/file`, {
       params: { path },
     });
 
     setActiveFile(path);
     setFileContent(res.data.content ?? "");
+  };
+
+  const closeFile = (path: string) => {
+    setOpenFiles((prev) => prev.filter((p) => p !== path));
+    if (activeFile === path) {
+      const remaining = openFiles.filter((p) => p !== path);
+      if (remaining.length > 0) {
+        // Switch to the last opened file
+        openFile(remaining[remaining.length - 1]);
+      } else {
+        setActiveFile(null);
+        setFileContent("");
+      }
+    }
   };
 
   const saveFile = async (content: string) => {
@@ -203,6 +222,16 @@ export default function Workspace() {
           <div className="flex-1 min-w-0 flex flex-col">
             <EditorTabs
               projectName={projectName}
+              files={openFiles}
+              activeFile={activeFile}
+              onSelect={(path) => {
+                setActiveFile(path);
+                // We also need to fetch content if we just switched back to it
+                // Ideally we cache content, but for now let's re-fetch or rely on existing state if valid?
+                // Actually, openFile handles fetching. Let's reuse openFile but maybe optimize later.
+                openFile(path);
+              }}
+              onClose={closeFile}
               onRun={() => {
                 setTerminalOpen(true);
                 setRunSignal((v) => v + 1);
