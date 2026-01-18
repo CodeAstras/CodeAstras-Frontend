@@ -23,8 +23,7 @@ export function ParticipantsList() {
   // DEBUG: Inspect API response structure
   useEffect(() => {
     if (currentCollaborators.length > 0) {
-      console.log("🐛 [ParticipantsList] Raw Collaborator Data:", currentCollaborators);
-      console.log("🐛 [ParticipantsList] First Item:", currentCollaborators[0]);
+      console.log("🐛 [ParticipantsList] ALL Collaborators:", currentCollaborators);
     }
   }, [currentCollaborators]);
 
@@ -92,20 +91,35 @@ export function ParticipantsList() {
 
           currentCollaborators.map((participant) => {
             if (!participant) return null; // Safe guard
-            const email = participant.email || "Unknown User";
-            const color = getColor(email);
+
+            // Resolve fields from potential backend variations
+            const realId = participant.id || participant.userId || "unknown-id";
 
             // Robust name derivation
             const pAny = participant as any;
-            let rawName = participant.name || pAny.username;
+            let rawName = participant.name || participant.fullName || participant.displayName || participant.username || pAny.username;
+
+            // If explicit name missing, fallback to nameOrEmail
+            if (!rawName && participant.nameOrEmail) {
+              if (!participant.nameOrEmail.includes('@')) {
+                rawName = participant.nameOrEmail;
+              } else {
+                rawName = participant.nameOrEmail.split('@')[0];
+              }
+            }
+
             if (!rawName && participant.email) rawName = participant.email.split('@')[0];
             if (!rawName) rawName = "User";
 
             const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
+            // Display email fallback
+            const displayEmail = participant.email || (participant.nameOrEmail && participant.nameOrEmail.includes('@') ? participant.nameOrEmail : "") || "User";
+            const color = getColor(displayEmail);
+
             return (
               <div
-                key={participant.userId || email}
+                key={realId}
                 className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group"
               >
                 {/* Avatar */}
@@ -119,7 +133,7 @@ export function ParticipantsList() {
                       fontWeight: '600'
                     }}
                   >
-                    {getAvatar(email)}
+                    {getAvatar(displayEmail)}
                   </div>
 
                   {/* Status indicator - Mock for now unless linked to VoiceContext or OnlineStatusContext */}
@@ -134,7 +148,7 @@ export function ParticipantsList() {
                     {displayName}
                   </div>
                   {/* Show email as secondary if we derived the name or used a real name */}
-                  <div className="text-xs truncate text-white/50">{participant.email}</div>
+                  <div className="text-xs truncate text-white/50">{displayEmail}</div>
 
                   <div className="flex items-center gap-1.5 text-[10px] text-white/60 uppercase mt-0.5">
                     {/* Only show Role label if NOT Collaborator (default) */}

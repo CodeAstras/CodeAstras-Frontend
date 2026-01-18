@@ -21,7 +21,7 @@ import {
 import { CosmicStars } from "../components/workspace/CosmicStars";
 import { UserProfile, profileService } from '../services/profileService';
 import { toast } from 'sonner';
-import EditProfileModal from '../components/profile/EditProfileModal';
+import ProfileSettings from '../components/profile/ProfileSettings';
 import { ProfileBanner } from '../components/profile/ProfileBanner';
 import { ProfileSkeleton } from '../components/profile/ProfileSkeleton';
 
@@ -59,7 +59,9 @@ export default function Profile() {
         setIsMe(true);
       }
       setProfile(data);
-      console.log("FEATURE DEBUG: Profile Data Received:", data); // Debugging for User
+      console.log("🐛 [Profile] Fetch Result:", data);
+      console.log("🐛 [Profile] DisplayName:", data.displayName);
+      console.log("🐛 [Profile] FullName:", data.fullName);
     } catch (err: any) {
       console.error(err);
       if (err.status === 404) {
@@ -224,7 +226,7 @@ export default function Profile() {
                 <ProfileBanner />
 
                 <div className="px-8 pb-8">
-                  <div className="flex items-end gap-6 -mt-16 mb-6">
+                  <div className="flex items-start gap-6 -mt-16 mb-6">
                     {/* Avatar (No Camera Trigger) */}
                     <div className="relative group">
                       <div className="w-32 h-32 rounded-2xl flex items-center justify-center text-3xl font-bold border-4 border-[#0f0f0f] relative z-10 bg-[#15151a] overflow-hidden text-[#7c3aed]">
@@ -236,15 +238,31 @@ export default function Profile() {
                       </div>
                     </div>
 
-                    <div className="flex-1 pt-8">
-                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+                    <div className="flex-1 relative z-10 mt-20">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2">
                         <div>
-                          {/* Name Header - Fallback check for displayName -> fullName -> name -> username */}
-                          <h1 className="text-3xl font-bold mb-1 text-white">
-                            {(profile.displayName && profile.displayName.trim().length > 0 && profile.displayName !== '?') ? profile.displayName :
-                              (profile.fullName && profile.fullName.trim().length > 0) ? profile.fullName :
-                                (profile.name && profile.name.trim().length > 0) ? profile.name :
-                                  profile.username}
+                          {/* Name Header */}
+                          <h1 className="text-2xl font-bold mb-1 text-white min-h-[2rem]">
+                            {(() => {
+                              // Extract raw values
+                              const vals = [
+                                profile.displayName,
+                                profile.fullName,
+                                profile.name,
+                                profile.username
+                              ].map(v => v?.trim());
+
+                              const [dn, fn, n, un] = vals;
+
+                              // 1. Display Name (if valid)
+                              if (dn && dn.length > 0 && dn !== '?' && dn !== 'User') return dn;
+                              // 2. Full Name
+                              if (fn && fn.length > 0) return fn;
+                              // 3. Name (Google Auth Name)
+                              if (n && n.length > 0 && n !== 'User') return n;
+                              // 4. Username (Fallback)
+                              return un || "Unknown Star";
+                            })()}
                           </h1>
 
                           {/* Username Handle */}
@@ -353,29 +371,17 @@ export default function Profile() {
             <div className="space-y-8">
               <div><h1 className="text-3xl font-bold mb-2 flex items-center gap-3"><Settings className="w-8 h-8 text-[#7c3aed]" />Settings</h1></div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Edit Profile Card */}
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="p-3 bg-[#7c3aed]/10 rounded-xl text-[#7c3aed]">
-                      <User className="w-6 h-6" />
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">Edit Profile</h3>
-                  <p className="text-white/60 mb-6 text-sm">
-                    Update your personal information, avatar, bio, and location.
-                  </p>
-                  <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="w-full py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all font-medium flex items-center justify-center gap-2 text-white hover:text-[#7c3aed]"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Edit Profile Details
-                  </button>
-                </div>
+              {/* Inline Profile Settings Form */}
+              {profile && (
+                <ProfileSettings
+                  currentUser={profile}
+                  onProfileUpdate={fetchProfile}
+                />
+              )}
 
-                {/* Account Preferences Card (Placeholder) */}
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all">
+              {/* Account Preferences Card (Still as a card or can be moved later) */}
+              <div className="grid grid-cols-1 gap-6 mt-8">
+                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all opacity-60">
                   <div className="flex items-start justify-between mb-4">
                     <div className="p-3 bg-[#0ea5e9]/10 rounded-xl text-[#0ea5e9]">
                       <Palette className="w-6 h-6" />
@@ -383,23 +389,10 @@ export default function Profile() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">App Preferences</h3>
                   <p className="text-white/60 mb-6 text-sm">
-                    Customize your workspace appearance and notification settings.
+                    Customize your workspace appearance and notification settings. (Coming Soon)
                   </p>
-                  <button className="w-full py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all font-medium opacity-50 cursor-not-allowed text-white">
-                    Coming Soon
-                  </button>
                 </div>
               </div>
-
-              {/* Edit Modal - Rendered conditionally within Settings */}
-              {isMe && profile && (
-                <EditProfileModal
-                  isOpen={isEditModalOpen}
-                  onClose={() => setIsEditModalOpen(false)}
-                  currentUser={profile}
-                  onProfileUpdate={fetchProfile}
-                />
-              )}
             </div>
           )}
 

@@ -77,23 +77,47 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, onProfi
         if (!isDirty) return;
 
         setIsLoading(true);
-        try {
-            await profileService.updateProfile({
-                displayName: formData.displayName,
-                bio: formData.bio,
-                location: formData.location
-            });
+        let success = false;
 
-            if (formData.avatarUrl !== currentUser.avatarUrl) {
-                await profileService.updateAvatar({ avatarUrl: formData.avatarUrl });
+        try {
+            // 1. Update Basic Info
+            if (
+                formData.displayName !== currentUser.displayName ||
+                formData.bio !== currentUser.bio ||
+                formData.location !== currentUser.location
+            ) {
+                await profileService.updateProfile({
+                    displayName: formData.displayName,
+                    bio: formData.bio,
+                    location: formData.location
+                });
+                success = true; // Mark as at least partially successful
             }
 
-            toast.success('Profile updated successfully');
-            onProfileUpdate();
-            onClose();
+            // 2. Update Avatar (if changed)
+            if (formData.avatarUrl !== currentUser.avatarUrl) {
+                try {
+                    await profileService.updateAvatar({ avatarUrl: formData.avatarUrl });
+                    success = true;
+                } catch (avatarErr: any) {
+                    console.error("Avatar update failed", avatarErr);
+                    toast.error("Profile info saved, but failed to update avatar.");
+                }
+            }
+
+            if (success || (!isDirty && success === false)) { // If nothing actually changed or success
+                toast.success('Profile updated successfully');
+                await onProfileUpdate();
+                onClose();
+            }
+
         } catch (error: any) {
             console.error(error);
-            toast.error(error.message || 'Failed to update profile');
+            if (error.status === 401) {
+                toast.error("Session expired. Please sign in again.");
+            } else {
+                toast.error(error.message || 'Failed to update profile');
+            }
         } finally {
             setIsLoading(false);
         }
