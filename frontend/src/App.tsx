@@ -16,7 +16,6 @@ import CodeEditor from "./components/workspace/CodeEditor";
 import { Outlet } from "react-router-dom";
 import { CollaborationProvider } from "./context/CollaborationContext";
 import { VoiceProvider } from "./context/VoiceContext";
-import { VoiceControlPanel } from "./components/workspace/VoiceControlPanel";
 import MyProjects from "./pages/MyProjects";
 import Rooms from "./pages/Rooms";
 import Teams from "./pages/Teams";

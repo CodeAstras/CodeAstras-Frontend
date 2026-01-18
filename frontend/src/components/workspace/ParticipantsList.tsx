@@ -248,16 +248,7 @@ export function ParticipantsList() {
         )}
       </div>
 
-      {/* Invite button */}
-      <div className="p-3 border-t border-white/5 flex-shrink-0">
-        <button
-          className="w-full px-4 py-2 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all duration-300 text-sm flex items-center justify-center gap-2"
-          onClick={() => setShowInvite(true)}
-        >
-          <UserPlus className="w-4 h-4" />
-          Invite to Workspace
-        </button>
-      </div>
+
 
       {showInvite && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowInvite(false)}>

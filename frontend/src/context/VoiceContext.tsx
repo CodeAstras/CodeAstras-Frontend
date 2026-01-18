@@ -6,7 +6,7 @@ import { Client } from "@stomp/stompjs";
 
 interface VoiceContextType {
     joinCall: (projectId: string) => Promise<void>;
-    leaveCall: () => void;
+    leaveCall: (manual?: boolean) => void;
     toggleMute: () => void;
     toggleVideo: () => void;
     isMuted: boolean;
@@ -179,7 +179,17 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         try {
             await initLocalStream();
-            await voiceWs.connect(projectId, handleSignal);
+            await voiceWs.connect(
+                projectId,
+                handleSignal,
+                () => {
+                    // On Disconnect Callback (from wsVoice)
+                    console.warn("⚠️ Voice WS Disconnected (Timeout or Network)");
+                    // We call leaveCall but suppress the "Left voice channel" toast if needed, 
+                    // or show a different one.
+                    handleDisconnection();
+                }
+            );
 
             setIsConnected(true);
             toast.success("Joined voice channel");
@@ -190,11 +200,13 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     }, [isConnected]);
 
-    const leaveCall = useCallback(() => {
-        if (!isConnected) return;
+    // Internal cleaner without Toast for timeouts
+    const handleDisconnection = useCallback(() => {
+        cleanupVoiceState();
+        // toast.error("Voice connection lost (Timeout)"); // User requested no popup on timeout
+    }, []);
 
-        voiceWs.disconnect();
-
+    const cleanupVoiceState = () => {
         peersRef.current.forEach(pc => pc.close());
         peersRef.current.clear();
         setRemoteStreams(new Map());
@@ -211,8 +223,21 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setActiveSpeakers([]);
         analysersRef.current.clear();
         speakingFramesRef.current.clear();
+    };
 
-        toast.info("Left voice channel");
+    const leaveCall = useCallback((manual: boolean = false) => {
+        console.group("leaveCall Trace");
+        console.trace("Who called leaveCall?");
+        console.groupEnd();
+
+        if (!isConnected) return;
+
+        voiceWs.disconnect();
+        cleanupVoiceState();
+
+        if (manual) {
+            toast.info("You left the voice channel");
+        }
     }, [isConnected]);
 
     const handleSignal = async (signal: SignalMessage | CallParticipantsMessage) => {
@@ -342,6 +367,9 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const removePeer = (senderId: string) => {
+        // Double check we don't process our own leave signal if it somehow loops back
+        if (senderId === userIdRef.current) return;
+
         const pc = peersRef.current.get(senderId);
         if (pc) {
             const analyser = analysersRef.current.get(senderId);
@@ -357,7 +385,11 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 return newMap;
             });
             setPeersMapVersion(v => v + 1);
-            toast.info("User left call");
+            // toast.info("User left call"); // Removed per user request to avoid ghost notification spam
+        } else {
+            // If peer didn't exist in our map, it might be a ghost or duplicate signal.
+            // Suppress the toast.
+            console.warn(`Ignored CALL_LEAVE from unknown/unconnected peer: ${senderId}`);
         }
     };
 

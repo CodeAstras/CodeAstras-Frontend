@@ -29,7 +29,7 @@ const VideoPlayer = ({ stream, isMe = false }: { stream?: MediaStream | null, is
       muted={isMe} // Mute self to prevent feedback
       className={cn(
         "w-full h-full object-cover",
-        isMe && "transform scale-x-[-1]" // Only mirror myself
+        isMe && "transform scale-x-[-1]" // Restored: Self-view should be mirrored (Discord style)
       )}
     />
   );
@@ -278,7 +278,7 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
 
         {isConnected ? (
           <button
-            onClick={leaveCall}
+            onClick={() => leaveCall(true)}
             title="Leave Call"
             className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/80 hover:bg-red-500 text-white shadow-lg shadow-red-500/20 transition-all"
           >
