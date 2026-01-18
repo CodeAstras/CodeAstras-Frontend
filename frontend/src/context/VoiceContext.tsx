@@ -8,10 +8,14 @@ interface VoiceContextType {
     joinCall: (projectId: string) => Promise<void>;
     leaveCall: () => void;
     toggleMute: () => void;
+    toggleVideo: () => void;
     isMuted: boolean;
+    isVideoEnabled: boolean;
     isConnected: boolean;
     activeSpeakers: string[];
     peers: Map<string, RTCPeerConnection>;
+    localStream: MediaStream | null;
+    remoteStreams: Map<string, MediaStream>;
 }
 
 const VoiceContext = createContext<VoiceContextType | null>(null);
@@ -30,8 +34,7 @@ const RTC_CONFIG: RTCConfiguration = {
     ]
 };
 
-// GLOBAL AudioContext Singleton (per V1 Phase 2.1)
-// Only create one audio context for the entire session to avoid resource limits
+// GLOBAL AudioContext Singleton
 let globalAudioContext: AudioContext | null = null;
 function getAudioContext() {
     if (!globalAudioContext) {
@@ -45,8 +48,13 @@ function getAudioContext() {
 
 export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
-    const [isMuted, setIsMuted] = useState(true); // Default muted per V1 Rule 3.1
+    const [isMuted, setIsMuted] = useState(true);
     const [activeSpeakers, setActiveSpeakers] = useState<string[]>([]);
+
+    // State for streams
+    const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+    const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+    const [isVideoEnabled, setIsVideoEnabled] = useState(false);
 
     // State to force re-render when peers map changes
     const [peersMapVersion, setPeersMapVersion] = useState(0);
@@ -80,15 +88,86 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             localStreamRef.current = stream;
+            setLocalStream(stream);
 
             // Apply initial mute state
             stream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+
+            // SETUP LOCAL AUDIO ANALYSIS (Crucial Fix: Analyze OWN audio)
+            // We verify userId is present first
+            if (userIdRef.current) {
+                setupAudioAnalysis(userIdRef.current, stream);
+            } else {
+                console.warn("User ID not available during initLocalStream, analytics might fail for self");
+            }
 
             return stream;
         } catch (error) {
             console.error("Failed to get local audio", error);
             toast.error("Could not access microphone");
             throw error;
+        }
+    };
+
+    const toggleVideo = async () => {
+        if (!localStreamRef.current) return;
+
+        const videoTracks = localStreamRef.current.getVideoTracks();
+
+        if (videoTracks.length > 0) {
+            // Turning OFF: Fully Stop Track to release hardware (Light OFF)
+            videoTracks.forEach(track => {
+                track.stop();
+                localStreamRef.current?.removeTrack(track);
+            });
+            setIsVideoEnabled(false);
+
+            // Force React re-render of local stream consumers
+            // We create a new object reference to ensure components detect the change
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+
+            // Update peers?
+            // Since we removed the track, we might need to renegotiate or simply let the 'mute' happen.
+            // But stripping the track is cleaner for hardware.
+            // Ideally we should replaceTrack(null) or wait for renegotiation.
+            // For now, this is enough to kill the local preview and light.
+
+        } else {
+            // Turning ON
+            try {
+                const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const newVideoTrack = videoStream.getVideoTracks()[0];
+
+                localStreamRef.current.addTrack(newVideoTrack);
+                setIsVideoEnabled(true);
+
+                // Force Update
+                setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+
+                // Add to existing connections
+                peersRef.current.forEach((pc, peerId) => {
+                    // Check if there is a sender for video
+                    const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+                    if (sender) {
+                        sender.replaceTrack(newVideoTrack);
+                    } else {
+                        pc.addTrack(newVideoTrack, localStreamRef.current!);
+                        // Trigger renegotiation if possible/needed
+                        // In this simplified context, we just add the track. 
+                        // If renegotiation is required, we call createPeerConnection(..., true) again usually, 
+                        // but that creates a new offer which might be complex mid-call.
+                        // Assuming stable connection allows "addTrack" -> "negotiationneeded"
+                        pc.createOffer().then(offer => {
+                            pc.setLocalDescription(offer);
+                            voiceWs.sendSignal({ type: "CALL_OFFER", payload: offer, senderId: userIdRef.current, targetId: peerId });
+                        }).catch(e => console.error("Renegotiation failed", e));
+                    }
+                });
+
+            } catch (e) {
+                console.error("Failed to enable camera", e);
+                toast.error("Could not access camera");
+            }
         }
     };
 
@@ -100,8 +179,6 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         try {
             await initLocalStream();
-
-            // Correctly awaiting the connection Promise
             await voiceWs.connect(projectId, handleSignal);
 
             setIsConnected(true);
@@ -116,22 +193,21 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const leaveCall = useCallback(() => {
         if (!isConnected) return;
 
-        // V1 Rule 1.10: Send CALL_LEAVE
-        voiceWs.disconnect(); // This sends CALL_LEAVE internally
+        voiceWs.disconnect();
 
-        // Close all peers
         peersRef.current.forEach(pc => pc.close());
         peersRef.current.clear();
+        setRemoteStreams(new Map());
         setPeersMapVersion(v => v + 1);
 
-        // Stop local tracks
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop());
             localStreamRef.current = null;
+            setLocalStream(null);
         }
 
-        // Reset UI state
         setIsConnected(false);
+        setIsVideoEnabled(false);
         setActiveSpeakers([]);
         analysersRef.current.clear();
         speakingFramesRef.current.clear();
@@ -140,79 +216,76 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [isConnected]);
 
     const handleSignal = async (signal: SignalMessage | CallParticipantsMessage) => {
-        // Handle Participants List (V1 Rule 1.4: You Joined)
-        if ('participants' in signal) { // Type guard for CallParticipantsMessage
+        if ('participants' in signal) {
             const { participants } = signal;
-            console.log("👥 Received Participants List:", participants);
-
-            // Create PC for each participant (NO OFFER)
             participants.forEach(pId => {
                 if (pId !== userIdRef.current) {
-                    createPeerConnection(pId, false); // False = Joiner never offers
+                    createPeerConnection(pId, false);
                 }
             });
             return;
         }
 
         const { type, payload, senderId, targetId } = signal;
-
-        // If signal is directed to a specific user and it's not us, ignore
         if (targetId && targetId !== userIdRef.current) return;
 
         console.log(`📶 Received V1 signal: ${type} from ${senderId}`);
 
         switch (type) {
-            case "CALL_JOIN": // V1 Rule 1.5: Someone Else Joined
-                createPeerConnection(senderId, true); // True = Existing user sends offer
+            case "CALL_JOIN":
+                createPeerConnection(senderId, true);
                 break;
-            case "CALL_OFFER": // V1 Rule 1.6: Handle OFFER
+            case "CALL_OFFER":
                 await handleOffer(senderId, payload);
                 break;
-            case "CALL_ANSWER": // V1 Rule 1.7: Handle ANSWER
+            case "CALL_ANSWER":
                 await handleAnswer(senderId, payload);
                 break;
-            case "CALL_ICE": // V1 Rule 1.8: ICE Handling
+            case "CALL_ICE":
                 await handleIceCandidate(senderId, payload);
                 break;
-            case "CALL_LEAVE": // V1 Rule 1.11: Other User Left
+            case "CALL_LEAVE":
                 removePeer(senderId);
                 break;
         }
     };
 
-    // V1 Phase 1.3: Deterministic Offer Rule
-    // initiator = true only if WE are existing user and THEY joined.
     const createPeerConnection = async (targetId: string, initiator: boolean) => {
-        if (peersRef.current.has(targetId)) return peersRef.current.get(targetId);
+        let pc = peersRef.current.get(targetId);
 
-        console.log(`🔗 Creating PC for ${targetId}. Initiator: ${initiator}`);
-        const pc = new RTCPeerConnection(RTC_CONFIG);
-        peersRef.current.set(targetId, pc);
-        setPeersMapVersion(v => v + 1);
+        if (!pc) {
+            console.log(`🔗 Creating PC for ${targetId}. Initiator: ${initiator}`);
+            pc = new RTCPeerConnection(RTC_CONFIG);
+            peersRef.current.set(targetId, pc);
+            setPeersMapVersion(v => v + 1);
+        }
 
-        // Add Local Audio Track
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => {
-                pc.addTrack(track, localStreamRef.current!);
+                if (pc!.getSenders().some(s => s.track?.id === track.id)) return;
+                pc!.addTrack(track, localStreamRef.current!);
             });
         }
 
-        // V1 Rule 1.9: Audio Playback + Phase 2 Entry Point (ontrack)
         pc.ontrack = (event) => {
-            console.log(`🔊 Received remote track from ${targetId}`);
+            console.log(`🔊/📹 Received remote track from ${targetId} (${event.track.kind})`);
             const stream = event.streams[0];
-            const remoteAudio = new Audio();
-            remoteAudio.srcObject = stream;
-            remoteAudio.autoplay = true;
 
-            // Phase 2.2: Per Peer Detection Hook
-            setupAudioAnalysis(targetId, stream);
+            setRemoteStreams(prev => {
+                const newMap = new Map(prev);
+                newMap.set(targetId, stream);
+                return newMap;
+            });
+
+            if (event.track.kind === 'audio') {
+                setupAudioAnalysis(targetId, stream);
+            }
         };
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
                 voiceWs.sendSignal({
-                    type: "CALL_ICE", // V1 Name
+                    type: "CALL_ICE",
                     payload: event.candidate,
                     senderId: userIdRef.current,
                     targetId
@@ -225,7 +298,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
                 voiceWs.sendSignal({
-                    type: "CALL_OFFER", // V1 Name
+                    type: "CALL_OFFER",
                     payload: offer,
                     senderId: userIdRef.current,
                     targetId
@@ -239,7 +312,6 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const handleOffer = async (senderId: string, offer: RTCSessionDescriptionInit) => {
-        // If we don't have a PC yet (race condition or first contact), create it (passive)
         const pc = await createPeerConnection(senderId, false);
         if (!pc) return;
 
@@ -248,7 +320,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await pc.setLocalDescription(answer);
 
         voiceWs.sendSignal({
-            type: "CALL_ANSWER", // V1 Name
+            type: "CALL_ANSWER",
             payload: answer,
             senderId: userIdRef.current,
             targetId: senderId
@@ -272,34 +344,32 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const removePeer = (senderId: string) => {
         const pc = peersRef.current.get(senderId);
         if (pc) {
-            // Cleanup Analyser
             const analyser = analysersRef.current.get(senderId);
             if (analyser) {
                 analyser.disconnect();
                 analysersRef.current.delete(senderId);
             }
-            // Close PC
             pc.close();
             peersRef.current.delete(senderId);
+            setRemoteStreams(prev => {
+                const newMap = new Map(prev);
+                newMap.delete(senderId);
+                return newMap;
+            });
             setPeersMapVersion(v => v + 1);
             toast.info("User left call");
         }
     };
 
-    // V1 Phase 3.4: Implementation Rule (Only toggle track.enabled)
     const toggleMute = () => {
         if (localStreamRef.current) {
             const newState = !isMuted;
             localStreamRef.current.getAudioTracks().forEach(track => {
-                track.enabled = !newState; // if isMuted=false (unmuting), enabled=true
+                track.enabled = !newState;
             });
             setIsMuted(newState);
         }
     };
-
-    // ----------------------------------------------------------------
-    // Phase 2: Active Speaker Detection (Strict Implementation)
-    // ----------------------------------------------------------------
 
     const setupAudioAnalysis = (userId: string, stream: MediaStream) => {
         const ctx = getAudioContext();
@@ -312,7 +382,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         source.connect(analyser);
 
         analysersRef.current.set(userId, analyser);
-        speakingFramesRef.current.set(userId, 0); // Init debouncer
+        speakingFramesRef.current.set(userId, 0);
     };
 
     useEffect(() => {
@@ -321,7 +391,9 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const detectSpeaking = () => {
             if (!isConnected) return;
             const speaking: string[] = [];
-            const SPEAKING_THRESHOLD = 30; // V1 Phase 2.7 heuristic
+
+            // Reduced threshold to 20 for easier triggering
+            const SPEAKING_THRESHOLD = 20;
 
             analysersRef.current.forEach((analyser, userId) => {
                 const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -330,24 +402,20 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 const sum = dataArray.reduce((acc, val) => acc + val, 0);
                 const average = sum / dataArray.length;
 
-                // V1 Phase 2.8: Smoothing / Debounce
                 let frames = speakingFramesRef.current.get(userId) || 0;
 
                 if (average > SPEAKING_THRESHOLD) {
                     frames++;
                 } else {
-                    // Decay faster than attack? Or equal. 
-                    // V1 suggestion: speakingFrames = Math.max(0, speakingFrames - 1);
                     frames = Math.max(0, frames - 1);
                 }
                 speakingFramesRef.current.set(userId, frames);
 
-                if (frames > 5) { // Needs ~80ms continuous sound to trigger
+                if (frames > 3) { // Reduced frame count for faster response
                     speaking.push(userId);
                 }
             });
 
-            // V1 Phase 2.9: Derived State Only
             setActiveSpeakers(prev => {
                 const isSame = prev.length === speaking.length && prev.every(id => speaking.includes(id));
                 return isSame ? prev : speaking;
@@ -362,16 +430,9 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         };
     }, [isConnected]);
 
-    // ----------------------------------------------------------------
-    // Phase 3: Push-to-Talk (PTT)
-    // ----------------------------------------------------------------
-
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // V1 Phase 3.2: Space key
-            if (e.code === "Space" && isMuted && isConnected && !e.repeat) { // Ignore repeat
-                // V1 Phase 3.3: Safety Guards
-                // Using document.activeElement checks
+            if (e.code === "Space" && isMuted && isConnected && !e.repeat) {
                 const active = document.activeElement;
                 const tagName = active?.tagName;
                 const isInput = tagName === "INPUT" || tagName === "TEXTAREA";
@@ -381,31 +442,22 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
                 e.preventDefault();
 
-                // Unmute TEMPORARILY
                 if (localStreamRef.current) {
                     localStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
-                    setIsMuted(false); // Update UI state
+                    setIsMuted(false);
                 }
             }
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            // V1 Phase 3.2: Key Up -> Mute
             if (e.code === "Space" && !isMuted && isConnected) {
-                // Safety: Even if focused input, releasing SPACE should probably mute to prevent hot mic?
-                // V1 Spec says: "Losing focus mutes mic", "User releases key -> Mic mutes instantly".
-                // We should mute regardless of focus to be safe.
-
                 if (localStreamRef.current) {
-                    // Check if it was a PTT release (we could store a 'isPTTActive' flag if we wanted to allow strict manual unmute + PTT mixed, but V1 implies PTT is the main mode or at least PTT ends mute)
-                    // For now, simple logic: Release Space = Mute.
                     localStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
                     setIsMuted(true);
                 }
             }
         };
 
-        // V1 Phase 3.3: On blur -> force mute
         const handleBlur = () => {
             if (!isMuted && isConnected && localStreamRef.current) {
                 localStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
@@ -429,10 +481,14 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             joinCall,
             leaveCall,
             toggleMute,
+            toggleVideo,
             isMuted,
+            isVideoEnabled,
             isConnected,
             activeSpeakers,
-            peers: peersRef.current
+            peers: peersRef.current,
+            localStream,
+            remoteStreams
         }}>
             {children}
         </VoiceContext.Provider>

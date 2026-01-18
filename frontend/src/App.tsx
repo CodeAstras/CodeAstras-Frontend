@@ -8,6 +8,8 @@ import TeamWorkspace from "./pages/TeamWorkspace";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import About from "./pages/About";
+import Pricing from "./pages/Pricing";
 import RequireAuth from "./auth/RequireAuth";
 import OAuthSuccessPage from "./pages/0AuthSuccessPage";
 import CodeEditor from "./components/workspace/CodeEditor";
@@ -29,6 +31,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/pricing" element={<Pricing />} />
 
 
         {/* Authenticated Routes with Collaboration Provider */}
@@ -59,6 +63,9 @@ export default function App() {
         {/* Auth (public) */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+
+        {/* Public Profile - No interactions but visible */}
+        <Route path="/u/:username" element={<Profile />} />
 
         {/* OAuth callback (public) */}
         <Route path="/oauth-success" element={<OAuthSuccessPage />} />

@@ -20,6 +20,7 @@ import { CosmicStars } from "../components/workspace/CosmicStars";
 import { QuickCreateModal } from "../components/modals/QuickCreateModal";
 import { NotificationBell } from "../components/NotificationBell";
 import { collabApi, Collaborator } from '../services/collabApi';
+import { useCollab } from '../context/CollaborationContext';
 import { DashboardHeader } from '../components/DashboardHeader';
 
 type DashboardProject = {
@@ -37,7 +38,10 @@ type Friend = {
     status: 'online' | 'offline';
     avatar: string;
     color: string;
+    avatarUrl?: string; // Added field
 };
+
+
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -48,6 +52,7 @@ export default function Dashboard() {
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [projectsError, setProjectsError] = useState<string | null>(null);
     const [showAllProjects, setShowAllProjects] = useState(false);
+
 
     // Dynamic Friends State
     const [recentCollaborators, setRecentCollaborators] = useState<Friend[]>([]);
@@ -62,6 +67,29 @@ export default function Dashboard() {
     };
 
     const getAvatar = (email: string) => email.substring(0, 2).toUpperCase();
+
+    // --- RECENT ACCESS TRACKING ---
+    const updateRecentAccess = (projectId: string) => {
+        try {
+            const raw = localStorage.getItem("recent_projects");
+            const data = raw ? JSON.parse(raw) : {};
+            data[projectId] = Date.now();
+            localStorage.setItem("recent_projects", JSON.stringify(data));
+        } catch (e) {
+            console.error("Failed to update recent access", e);
+        }
+    };
+
+    const getRecentAccess = (projectId: string): number => {
+        try {
+            const raw = localStorage.getItem("recent_projects");
+            const data = raw ? JSON.parse(raw) : {};
+            return data[projectId] || 0;
+        } catch (e) {
+            return 0;
+        }
+    };
+    // ----------------------------
 
     // Fetch Friends (Aggregated from recent projects)
     const fetchRecentCollaborators = async (currentProjects: DashboardProject[]) => {
@@ -82,16 +110,41 @@ export default function Dashboard() {
             for (const project of projectsToCheck) {
                 try {
                     const collabs = await collabApi.getProjectCollaborators(project.id);
+                    console.log(`[Dashboard] Collaborators for project ${project.id}:`, collabs); // DEBUG
                     collabs.forEach(c => {
                         // Exclude self and duplicates
-                        if (c.userId !== myId && !uniqueFriends.has(c.userId)) {
-                            uniqueFriends.set(c.userId, {
-                                userId: c.userId,
-                                email: c.email,
-                                name: c.email.split('@')[0], // Default name from email
+                        // Use c.id (from debug) or c.userId (legacy) or c.email or c.nameOrEmail
+                        const realId = c.id || c.userId || c.email || c.nameOrEmail;
+                        if (realId && realId !== myId && !uniqueFriends.has(realId)) {
+                            // Robust name derivation
+                            const pAny = c as any;
+                            // Check all possible fields from backend (User entity has fullName/username, Profile has displayName)
+                            let rawName = c.name || c.fullName || c.displayName || c.username || pAny.username;
+
+                            // If no explicit name fields, check nameOrEmail
+                            if (!rawName && c.nameOrEmail) {
+                                if (!c.nameOrEmail.includes('@')) {
+                                    rawName = c.nameOrEmail;
+                                } else {
+                                    rawName = c.nameOrEmail.split('@')[0];
+                                }
+                            }
+
+                            if (!rawName && c.email) rawName = c.email.split('@')[0];
+                            if (!rawName) rawName = "User";
+                            const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
+                            // Determine email for display/avatar
+                            const displayEmail = c.email || (c.nameOrEmail && c.nameOrEmail.includes('@') ? c.nameOrEmail : "") || "User";
+
+                            uniqueFriends.set(realId, {
+                                userId: realId,
+                                email: displayEmail,
+                                name: displayName,
                                 status: 'offline', // No global presence API yet, default offline
-                                avatar: getAvatar(c.email),
-                                color: getColor(c.email)
+                                avatarUrl: c.avatarUrl, // Pass avatarUrl
+                                avatar: getAvatar(displayEmail),
+                                color: getColor(displayEmail),
                             });
                         }
                     });
@@ -172,6 +225,8 @@ export default function Dashboard() {
             const created = jsonResponse || {};
             console.log("✅ Project created successfully:", created);
 
+            updateRecentAccess(created.id); // 🔥 Update access time
+
             navigate(`/editor/${created.id}`);
         } catch (err: any) {
             // 8️⃣ Final catch-all with detailed console log
@@ -223,10 +278,15 @@ export default function Dashboard() {
                 updatedAt: p.updatedAt || p.updated_at || p.createdAt || p.created_at || "",
             }));
 
-            // sort newest first
-            mapped.sort((a, b) =>
-                new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-            );
+            // sort by newest (local access or server modification)
+            mapped.sort((a, b) => {
+                const aDate = new Date(a.updatedAt).getTime();
+                const bDate = new Date(b.updatedAt).getTime();
+
+                const aTime = Math.max(isNaN(aDate) ? 0 : aDate, getRecentAccess(a.id));
+                const bTime = Math.max(isNaN(bDate) ? 0 : bDate, getRecentAccess(b.id));
+                return bTime - aTime;
+            });
 
             setProjects(mapped);
 
@@ -241,9 +301,12 @@ export default function Dashboard() {
         }
     };
 
+
+    const { lastUpdate } = useCollab();
+
     useEffect(() => {
         fetchProjects();
-    }, []);
+    }, [lastUpdate]);
 
 
     const rooms: any[] = [];
@@ -358,15 +421,13 @@ export default function Dashboard() {
                                 Your Projects
                             </h2>
                             <div className="flex items-center gap-2">
-                                {projects.length > 4 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAllProjects(prev => !prev)}
-                                        className="px-3 py-2 text-sm text-white/70 hover:text-white/90 hover:bg-white/5 rounded-lg transition"
-                                    >
-                                        {showAllProjects ? "Show less" : "See all"}
-                                    </button>
-                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/my-projects')}
+                                    className="px-3 py-2 text-sm text-white/70 hover:text-white/90 hover:bg-white/5 rounded-lg transition"
+                                >
+                                    See all
+                                </button>
                                 <button
                                     onClick={() => setIsCreateModalOpen(true)}
                                     className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-all flex items-center gap-2"
@@ -407,7 +468,10 @@ export default function Dashboard() {
                                 <div
                                     key={project.id}
                                     className="group relative bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 hover:border-[#7c3aed]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#7c3aed]/10 cursor-pointer"
-                                    onClick={() => navigate(`/editor/${project.id}`)}
+                                    onClick={() => {
+                                        updateRecentAccess(project.id);
+                                        navigate(`/editor/${project.id}`);
+                                    }}
                                 >
                                     <div className="relative z-10">
                                         <div className="flex items-start justify-between mb-4">
@@ -474,12 +538,20 @@ export default function Dashboard() {
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="relative">
-                                                <div
-                                                    className="w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-sm uppercase"
-                                                    style={{ backgroundColor: `${friend.color}20`, color: friend.color }}
-                                                >
-                                                    {friend.avatar}
-                                                </div>
+                                                {friend.avatarUrl ? (
+                                                    <img
+                                                        src={friend.avatarUrl}
+                                                        alt={displayName}
+                                                        className="w-10 h-10 rounded-lg object-cover border border-white/10"
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        className="w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-sm uppercase"
+                                                        style={{ backgroundColor: `${friend.color}20`, color: friend.color }}
+                                                    >
+                                                        {friend.avatar}
+                                                    </div>
+                                                )}
                                                 <div
                                                     className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0f0f0f] ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-500'
                                                         }`}
@@ -487,9 +559,7 @@ export default function Dashboard() {
                                             </div>
                                             <div>
                                                 <div className="text-sm font-medium text-white/90">
-                                                    {/* If name implies generic user (e.g. from ID), show email instead */}
-                                                    {displayName.toLowerCase().startsWith('user ') ? displayEmail : displayEmail}
-                                                    {/* Requested: Use email as primary identifier if signed in via Google */}
+                                                    {displayName}
                                                 </div>
                                                 <div className="text-xs text-white/40 capitalize">
                                                     {friend.status === 'online' ? 'Online' : 'Offline'}

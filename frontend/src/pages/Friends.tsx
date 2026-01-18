@@ -4,6 +4,7 @@ import { Users, UserPlus, MessageCircle, Mail } from 'lucide-react';
 import { CosmicStars } from "../components/workspace/CosmicStars";
 import { DashboardHeader } from "../components/DashboardHeader";
 import { collabApi } from '../services/collabApi';
+import { useCollab } from '../context/CollaborationContext';
 
 type Friend = {
     userId: string;
@@ -12,6 +13,7 @@ type Friend = {
     status: 'online' | 'offline';
     avatar: string;
     color: string;
+    avatarUrl?: string;
 };
 
 export default function Friends() {
@@ -45,6 +47,13 @@ export default function Friends() {
             if (!res.ok) return; // Handle quietly on this page for now
 
             const projects = await res.json();
+            // Sort by updated/created
+            projects.sort((a: any, b: any) => {
+                const dA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+                const dB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+                return dB - dA;
+            });
+
             const projectsToCheck = projects.slice(0, 10); // Check top 10 projects
 
             const uniqueFriends = new Map<string, Friend>();
@@ -53,14 +62,37 @@ export default function Friends() {
                 try {
                     const collabs = await collabApi.getProjectCollaborators(project.id);
                     collabs.forEach(c => {
-                        if (c.userId !== myId && !uniqueFriends.has(c.userId)) {
-                            uniqueFriends.set(c.userId, {
-                                userId: c.userId,
-                                email: c.email,
-                                name: c.email.split('@')[0],
+                        const realId = c.id || c.userId || c.email || c.nameOrEmail;
+                        if (realId && realId !== myId && !uniqueFriends.has(realId)) {
+                            // Robust name derivation
+                            const pAny = c as any;
+                            // Check all possible fields from backend (User entity has fullName/username, Profile has displayName)
+                            let rawName = c.name || c.fullName || c.displayName || c.username || pAny.username;
+
+                            // If no explicit name fields, check nameOrEmail
+                            if (!rawName && c.nameOrEmail) {
+                                if (!c.nameOrEmail.includes('@')) {
+                                    rawName = c.nameOrEmail;
+                                } else {
+                                    rawName = c.nameOrEmail.split('@')[0];
+                                }
+                            }
+
+                            if (!rawName && c.email) rawName = c.email.split('@')[0];
+                            if (!rawName) rawName = "User";
+                            const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
+                            // Determine email for display/avatar
+                            const displayEmail = c.email || (c.nameOrEmail && c.nameOrEmail.includes('@') ? c.nameOrEmail : "") || "User";
+
+                            uniqueFriends.set(realId, {
+                                userId: realId,
+                                email: displayEmail,
+                                name: displayName,
                                 status: 'offline',
-                                avatar: getAvatar(c.email),
-                                color: getColor(c.email)
+                                avatar: getAvatar(displayEmail),
+                                color: getColor(displayEmail),
+                                avatarUrl: c.avatarUrl
                             });
                         }
                     });
@@ -77,9 +109,11 @@ export default function Friends() {
         }
     };
 
+    const { lastUpdate } = useCollab();
+
     useEffect(() => {
         fetchFriends();
-    }, []);
+    }, [lastUpdate]);
 
     return (
         <main className="pt-24 pb-16 px-6 max-w-[1200px] mx-auto relative z-10">
@@ -104,10 +138,6 @@ export default function Friends() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {friends.map((friend) => {
-                        const displayName = friend.name || friend.email.split('@')[0];
-                        const displayEmail = friend.email;
-                        const showEmail = displayName.toLowerCase().startsWith('user ');
-
                         return (
                             <div
                                 key={friend.userId || friend.email}
@@ -116,17 +146,25 @@ export default function Friends() {
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="relative">
-                                            <div
-                                                className="w-12 h-12 rounded-xl flex items-center justify-center font-semibold text-lg uppercase"
-                                                style={{ backgroundColor: `${friend.color}20`, color: friend.color }}
-                                            >
-                                                {friend.avatar}
-                                            </div>
+                                            {friend.avatarUrl ? (
+                                                <img
+                                                    src={friend.avatarUrl}
+                                                    alt={friend.name}
+                                                    className="w-12 h-12 rounded-xl object-cover border border-white/10"
+                                                />
+                                            ) : (
+                                                <div
+                                                    className="w-12 h-12 rounded-xl flex items-center justify-center font-semibold text-lg uppercase"
+                                                    style={{ backgroundColor: `${friend.color}20`, color: friend.color }}
+                                                >
+                                                    {friend.avatar}
+                                                </div>
+                                            )}
                                             <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-[#0f0f0f] ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}`} />
                                         </div>
                                         <div>
                                             <div className="font-semibold text-white/90">
-                                                {showEmail ? displayEmail : displayName}
+                                                {friend.name}
                                             </div>
                                             <div className="text-xs text-white/40 flex items-center gap-1">
                                                 <Mail className="w-3 h-3" />

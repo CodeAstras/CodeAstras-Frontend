@@ -2,8 +2,20 @@ import { motion } from "motion/react";
 import { AstraCore } from "./AstraCore";
 import { Code2, Sparkles, Zap } from "lucide-react";
 import { Parallax } from "./ScrollReveal";
+import { useNavigate } from "react-router-dom";
 
 export function HeroSection() {
+  const navigate = useNavigate();
+
+  const handleLaunch = () => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 md:px-8 pt-20 md:pt-24 pb-8 md:pb-12">
       <div className="max-w-[1600px] w-full mx-auto grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
@@ -114,7 +126,7 @@ export function HeroSection() {
                 className="relative group px-8 md:px-10 py-4 md:py-5 rounded-2xl overflow-hidden"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => window.location.hash = '/dashboard'}
+                onClick={handleLaunch}
               >
                 {/* Animated gradient background */}
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite]" />

@@ -1,23 +1,62 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Mic, MicOff, Video, VideoOff, Monitor, Settings, PhoneOff, MoreVertical } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Mic, MicOff, Video, VideoOff, Monitor, Settings, PhoneOff, Phone } from 'lucide-react';
 import { useVoice } from '../../context/VoiceContext';
 import { useCollab } from '../../context/CollaborationContext';
 import { cn } from '../../components/ui/utils';
-import { jwtDecode } from "jwt-decode"; // Ensure you have this installed
+import { jwtDecode } from "jwt-decode";
+import { useParams } from 'react-router-dom';
 
 interface VideoPanelProps {
   mode: 'video' | 'audio';
   onModeChange: (mode: 'video' | 'audio') => void;
 }
 
-import { useParams } from 'react-router-dom';
+// Internal Video Player Component
+const VideoPlayer = ({ stream, isMe = false }: { stream?: MediaStream | null, isMe?: boolean }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted={isMe} // Mute self to prevent feedback
+      className={cn(
+        "w-full h-full object-cover",
+        isMe && "transform scale-x-[-1]" // Only mirror myself
+      )}
+    />
+  );
+};
 
 export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
   const { projectId } = useParams();
-  const { isConnected, isMuted, toggleMute, leaveCall, activeSpeakers, peers, joinCall } = useVoice();
+  const {
+    isConnected,
+    isMuted,
+    toggleMute,
+    leaveCall,
+    activeSpeakers,
+    joinCall,
+    toggleVideo,
+    isVideoEnabled,
+    localStream,
+    remoteStreams
+  } = useVoice();
+
   const { currentCollaborators } = useCollab();
   const [cameraOn, setCameraOn] = useState(false);
   const [myId, setMyId] = useState<string>("");
+
+  useEffect(() => {
+    setCameraOn(isVideoEnabled);
+  }, [isVideoEnabled]);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -31,7 +70,10 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
     }
   }, []);
 
-  // Derive real participants list
+  const handleToggleCam = () => {
+    toggleVideo();
+  };
+
   const participants = useMemo(() => {
     // 1. Find "Me"
     const safeCollaborators = Array.isArray(currentCollaborators) ? currentCollaborators : [];
@@ -43,74 +85,63 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
 
     const myProfile = {
       id: myId,
-      name: meCollaborator.email.split('@')[0], // Simple name extraction
+      name: meCollaborator.email.split('@')[0],
       avatar: meCollaborator.email.substring(0, 2).toUpperCase(),
-      color: '#0ea5e9', // You are always blue/cyan
-      isMe: true
+      color: '#0ea5e9',
+      isMe: true,
+      stream: localStream
     };
 
     // 2. Find Others (Connected Peers)
-    // 'peers' map contains connection objects for connected users. Keys are userIds.
-    const otherProfiles = Array.from(peers.keys()).map(peerId => {
+    const activePeers = Array.from(remoteStreams.keys());
+
+    const otherProfiles = activePeers.map(peerId => {
       const collaborator = safeCollaborators.find(c => c?.userId === peerId);
       return {
         id: peerId,
-        name: collaborator ? collaborator.email : `User ${peerId.substring(0, 4)}`, // Use full email if available
+        name: collaborator ? collaborator.email.split('@')[0] : `User ${peerId.substring(0, 4)}`,
         avatar: collaborator ? collaborator.email.substring(0, 2).toUpperCase() : '??',
-        color: '#8b5cf6', // others are purple
-        isMe: false
+        color: '#8b5cf6',
+        isMe: false,
+        stream: remoteStreams.get(peerId)
       };
     });
 
     return [myProfile, ...otherProfiles];
-  }, [currentCollaborators, peers, myId]);
+  }, [currentCollaborators, remoteStreams, localStream, myId]);
 
-  // Logic to determine main speaker (Active Speaker, else You)
-  // If an active speaker exists and is NOT me, show them.
-  // If multiple, show the first one.
-  // If none, show me.
-  const mainSpeakerId = activeSpeakers.find(id => id !== myId) || myId;
+
+  // Logic to determine main speaker
+  // Prioritize active remote speaker -> First remote user -> Only then Me
+  const activeRemote = activeSpeakers.find(id => id !== myId);
+  const firstRemote = participants.find(p => !p.isMe);
+
+  // Rule: If there is an active remote speaker, show them.
+  // Else if there are ANY remote participants, show the first one (pinned view).
+  // Else show me.
+  const mainSpeakerId = activeRemote || (firstRemote ? firstRemote.id : myId);
   const mainSpeaker = participants.find(p => p.id === mainSpeakerId) || participants[0];
 
+  // Others list should include everyone NOT the main speaker
   const others = participants.filter(p => p.id !== mainSpeaker.id);
 
-  /* ------------------------------------------------------------
-     Render: Join Screen (If not connected)
-     ------------------------------------------------------------ */
-  if (!isConnected) {
-    const handleJoin = () => {
-      // We need projectId. For now, assume we can get it from context or URL params if needed.
-      // However, VideoPanel doesn't receive projectId props.
-      // It seems Workspace has it.
-      // We can try to extract from URL using window.location or params if not passed.
-      // But useVoice joinCall requires projectId.
-      // Let's grab it from useParams if possible or passed prop.
-    };
-
-    // Actually, VideoPanel is rendered in Workspace. Workspace has projectId.
-    // Let's assume we can get projectId from useParams hook here since it is a child of Router.
-  }
-
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] relative">
-      {/* Header */}
+    <div className="flex flex-col h-full bg-[#0a0a0a] relative font-sans">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className={cn("w-2 h-2 rounded-full animate-pulse", isConnected ? "bg-green-500" : "bg-red-500")} />
+          <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-green-500 animate-pulse" : "bg-red-500")} />
           <span className="text-sm font-medium text-white/90">
             {isConnected ? "Live Session" : "Disconnected"}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-white/60 bg-white/5 px-2 py-1 rounded-md">
-          <span className="text-xs font-medium">{participants.length + (activeSpeakers.length > 0 ? 0 : 0)}</span>
+        <div className="flex items-center gap-1.5 text-white/60 bg-white/5 px-2 py-1 rounded-md border border-white/5">
+          <span className="text-xs font-medium">{participants.length}</span>
           <span className="text-[10px] uppercase">users</span>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 px-4 pb-20 overflow-y-auto space-y-4">
+      <div className="flex-1 px-4 pb-20 overflow-y-auto space-y-3">
 
-        {/* If not connected, show a placeholder or empty state, but NOT blocking */}
         {!isConnected && (
           <div className="flex flex-col items-center justify-center h-full opacity-40">
             <MicOff className="w-12 h-12 mb-2" />
@@ -121,24 +152,45 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
         {isConnected && (
           <>
             {/* Active Speaker / Main Card */}
-            <div className="relative aspect-[4/3] w-full bg-[#15151a] rounded-3xl border-2 border-cyan-500 overflow-hidden shadow-xl shadow-cyan-500/20 group">
-              {/* Glow Effect for Speaking */}
-              <div className="absolute inset-0 bg-cyan-500/5" />
+            <div
+              className={cn(
+                "relative w-full bg-[#1e1e24] rounded-2xl overflow-hidden shadow-2xl transition-all duration-300",
+                activeSpeakers.includes(mainSpeaker.id)
+                  ? "border-[2px] border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+                  : "border border-white/5"
+              )}
+              style={{ aspectRatio: "4/3", minHeight: "200px" }}
+            >
 
-              {/* Avatar Circle */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-24 h-24 rounded-full border-2 border-cyan-500 text-cyan-500 flex items-center justify-center text-3xl font-light tracking-wider shadow-[0_0_30px_rgba(6,182,212,0.3)] bg-[#0f1014]">
-                  {mainSpeaker.avatar}
+              {/* Video / Avatar */}
+              {mainSpeaker.stream && mainSpeaker.stream.getVideoTracks().some(t => t.enabled && t.readyState === 'live') ? (
+                <VideoPlayer stream={mainSpeaker.stream} isMe={mainSpeaker.isMe} />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-[#18181b]">
+                  <div className={cn(
+                    "w-28 h-28 rounded-full border-[2px] flex items-center justify-center text-4xl font-light tracking-wider bg-[#131316] shadow-xl",
+                    activeSpeakers.includes(mainSpeaker.id) ? "border-cyan-500 text-cyan-400" : "border-white/10 text-white/40"
+                  )}>
+                    {mainSpeaker.avatar}
+                  </div>
+                </div>
+              )}
+
+              {/* Floating Labels */}
+              <div className="absolute bottom-4 left-4 z-20">
+                <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/5 flex items-center gap-2 shadow-sm">
+                  <span className="text-sm font-medium text-white/90">{mainSpeaker.name}</span>
+                  {mainSpeaker.isMe && <span className="text-[10px] text-white/50 bg-white/10 px-1.5 rounded uppercase tracking-wider">You</span>}
                 </div>
               </div>
 
-              {/* Labels */}
-              <div className="absolute bottom-4 left-4 bg-[#0a0a0a]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
-                <span className="text-xs font-medium text-white/90">{mainSpeaker.name}</span>
-              </div>
-
-              <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#0a0a0a]/90 backdrop-blur-md border border-white/10 flex items-center justify-center">
-                {!isMuted ? <Mic className="w-4 h-4 text-white/80" /> : <MicOff className="w-4 h-4 text-red-500" />}
+              <div className="absolute top-4 right-4 z-20">
+                <div className={cn(
+                  "w-9 h-9 rounded-full backdrop-blur-md border flex items-center justify-center transition-colors",
+                  !isMuted && mainSpeaker.isMe ? "bg-white/10 border-white/10" : "bg-black/60 border-white/5"
+                )}>
+                  {!isMuted && mainSpeaker.isMe ? <Mic className="w-4 h-4 text-white" /> : <MicOff className="w-4 h-4 text-white/50" />}
+                </div>
               </div>
             </div>
 
@@ -148,23 +200,33 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
                 <div
                   key={p.id}
                   className={cn(
-                    "relative aspect-video bg-[#15151a] rounded-2xl border overflow-hidden transition-all",
-                    "border-white/10 hover:border-white/20"
+                    "relative w-full bg-[#1e1e24] rounded-xl overflow-hidden transition-all duration-300",
+                    activeSpeakers.includes(p.id)
+                      ? "border-[2px] border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.1)]"
+                      : "border border-white/5 hover:border-white/10"
                   )}
+                  style={{ aspectRatio: "16/9", minHeight: "80px" }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div
-                      className="w-10 h-10 rounded-full border flex items-center justify-center text-sm font-medium"
-                      style={{ borderColor: p.color, color: p.color, backgroundColor: `${p.color}10` }}
-                    >
-                      {p.avatar}
+                  {p.stream && p.stream.getVideoTracks().some(t => t.enabled && t.readyState === 'live') ? (
+                    <VideoPlayer stream={p.stream} isMe={p.isMe} />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#18181b]">
+                      <div
+                        className={cn(
+                          "w-12 h-12 rounded-full border-2 flex items-center justify-center text-sm font-medium bg-[#131316]",
+                          activeSpeakers.includes(p.id) ? "border-cyan-500 text-cyan-400" : "border-white/10 text-white/40"
+                        )}
+                        style={!activeSpeakers.includes(p.id) ? { borderColor: p.color, color: p.color } : {}}
+                      >
+                        {p.avatar}
+                      </div>
                     </div>
-                  </div>
-                  {/* Floating Name Badge - Bottom Left */}
-                  <div className="absolute bottom-2 left-2 flex flex-col">
-                    {p.isMe && <div className="text-[10px] text-white/50 mb-0.5 font-medium">You</div>}
-                    <div className="bg-[#0a0a0a]/80 backdrop-blur-sm px-2 py-1 rounded-lg border border-white/5 self-start">
-                      <span className="text-[10px] text-white/90">{p.name}</span>
+                  )}
+
+                  <div className="absolute bottom-2 left-2 z-20">
+                    <div className="bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-white/5 flex items-center gap-1.5">
+                      <span className="text-[11px] font-medium text-white/90">{p.name}</span>
+                      {p.isMe && <span className="text-[9px] text-white/50">(You)</span>}
                     </div>
                   </div>
                 </div>
@@ -172,10 +234,8 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
             </div>
           </>
         )}
-
       </div>
 
-      {/* Bottom Control Bar */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 bg-[#15151a]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl z-20">
         <button
           onClick={toggleMute}
@@ -190,7 +250,7 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
         </button>
 
         <button
-          onClick={() => setCameraOn(!cameraOn)}
+          onClick={handleToggleCam}
           disabled={!isConnected}
           className={cn(
             "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
@@ -223,12 +283,14 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
           <button
             onClick={() => projectId && joinCall(projectId)}
             title="Join Call"
-            className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-500/80 hover:bg-green-500 text-white shadow-lg shadow-green-500/20 transition-all animate-pulse"
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-500/30 transition-all animate-pulse"
           >
-            <Mic className="w-5 h-5" />
+            <div className="relative">
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping" />
+              <Phone className="w-5 h-5 fill-current" />
+            </div>
           </button>
         )}
-
       </div>
     </div>
   );

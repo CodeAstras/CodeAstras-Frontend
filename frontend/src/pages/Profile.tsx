@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   User,
   Award,
-  Zap,
   Settings,
   TrendingUp,
   LogOut,
@@ -14,68 +13,140 @@ import {
   Users,
   Flame,
   GitBranch,
-  Lock,
-  Shield,
-  Mic,
-  Volume2,
   Palette,
-  Chrome,
-  Star,
-  Target,
-  BookOpen,
-  Video,
-  Trophy,
-  Moon,
-  Github,
-  ChevronRight,
   Edit3,
-  Camera,
+  ChevronRight,
+  Share2
 } from 'lucide-react';
 import { CosmicStars } from "../components/workspace/CosmicStars";
-
+import { UserProfile, profileService } from '../services/profileService';
+import { toast } from 'sonner';
+import ProfileSettings from '../components/profile/ProfileSettings';
+import { ProfileBanner } from '../components/profile/ProfileBanner';
+import { ProfileSkeleton } from '../components/profile/ProfileSkeleton';
 
 type TabView = 'profile' | 'badges' | 'streaks' | 'contributions' | 'settings' | 'preferences';
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { username } = useParams(); // If present, viewing public profile
 
   const [activeTab, setActiveTab] = useState<TabView>('profile');
-  const [editingBio, setEditingBio] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMe, setIsMe] = useState(false);
 
-  // User data
-  const userData = {
-    name: 'Alex Chen',
-    username: '@dev_astro',
-    bio: 'Full-stack developer. Building cool things in the cosmos. 🚀',
-    location: 'San Francisco, CA',
-    email: 'alex.chen@codeastra.dev',
-    joinDate: 'January 2024',
-    avatar: 'AC',
-    color: '#7c3aed',
+  // If visiting /profile, isMe is true. If /u/:username, check if it matches current user.
+  // For simplicity, we trust the profileService output or the route.
+  // Ideally we should check if username === current_user.username
+
+  const fetchProfile = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      let data: UserProfile;
+      if (username) {
+        // Public View
+        data = await profileService.getPublicProfile(username);
+        // Check if this public profile is actually ME (optional optimization, but strict separation is fine)
+        // For now, assume if username param exists, it's public view.
+        setIsMe(false);
+      } else {
+        // Private View (/profile)
+        data = await profileService.getMyProfile();
+        setIsMe(true);
+      }
+      setProfile(data);
+      console.log("🐛 [Profile] Fetch Result:", data);
+      console.log("🐛 [Profile] DisplayName:", data.displayName);
+      console.log("🐛 [Profile] FullName:", data.fullName);
+    } catch (err: any) {
+      console.error(err);
+      if (err.status === 404) {
+        setError('User not found');
+      } else if (err.status === 401) {
+        setError('Unauthorized: Please log in again to view your profile.');
+      } else {
+        setError('Failed to load profile');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Stats
-  const stats = [
-    { label: 'Projects', value: 24, icon: Code2, color: '#7c3aed' },
-    { label: 'Rooms Joined', value: 156, icon: Users, color: '#0ea5e9' },
-    { label: 'Contributions', value: 1247, icon: GitBranch, color: '#06b6d4' },
+  useEffect(() => {
+    fetchProfile();
+  }, [username]);
+
+  // Sidebar items - Filter based on View Mode
+  const sidebarItems = [
+    { id: 'profile' as TabView, label: 'Profile', icon: User, showPublic: true },
+    { id: 'badges' as TabView, label: 'Badges', icon: Award, showPublic: true },
+    { id: 'streaks' as TabView, label: 'Streaks', icon: Flame, showPublic: true },
+    { id: 'contributions' as TabView, label: 'Contributions', icon: TrendingUp, showPublic: true },
+    { id: 'settings' as TabView, label: 'Settings', icon: Settings, showPublic: false }, // Private only
   ];
 
-  const sidebarItems = [
-    { id: 'profile' as TabView, label: 'Profile', icon: User },
-    { id: 'badges' as TabView, label: 'Badges', icon: Award },
-    { id: 'streaks' as TabView, label: 'Streaks', icon: Flame },
-    { id: 'contributions' as TabView, label: 'Contributions', icon: TrendingUp },
-    { id: 'settings' as TabView, label: 'Settings', icon: Settings },
-    { id: 'preferences' as TabView, label: 'Preferences', icon: Palette },
+  const visibleItems = sidebarItems.filter(item => isMe || item.showPublic);
+
+  // Stats Logic
+  const [projectCount, setProjectCount] = useState(0);
+
+  useEffect(() => {
+    const getProjectCount = async () => {
+      if (isMe) {
+        try {
+          const token = localStorage.getItem("access_token");
+          if (!token) return;
+
+          const res = await fetch("http://localhost:8080/api/projects", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setProjectCount(Array.isArray(data) ? data.length : 0);
+          }
+        } catch (e) {
+          console.error("Failed to fetch project count", e);
+        }
+      } else {
+        setProjectCount(profile?.stats?.projects || 0);
+      }
+    };
+
+    if (profile) {
+      getProjectCount();
+    }
+  }, [profile, isMe]);
+
+  const stats = [
+    { label: 'Projects', value: projectCount, icon: Code2, color: '#7c3aed' },
+    { label: 'Rooms Joined', value: profile?.stats?.roomsJoined || 0, icon: Users, color: '#0ea5e9' },
+    { label: 'Contributions', value: profile?.stats?.contributions || 0, icon: GitBranch, color: '#06b6d4' },
+    { label: 'Badges', value: 0, icon: Award, color: '#f59e0b' },
+    { label: 'Streak', value: 0, icon: Flame, color: '#ef4444' },
   ];
+
+  if (loading) {
+    return <ProfileSkeleton />;
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center text-white">
+        <h1 className="text-2xl font-bold mb-2">Oops!</h1>
+        <p className="text-white/60 mb-6">{error || 'Something went wrong'}</p>
+        <button onClick={() => navigate('/dashboard')} className="px-6 py-2 bg-white/10 rounded-xl hover:bg-white/20">Go Home</button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden">
       {/* Cosmic background */}
       <CosmicStars />
-
-      {/* Subtle background gradients */}
       <div className="fixed inset-0 pointer-events-none opacity-10">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#7c3aed] rounded-full blur-[150px]" />
         <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-[#0ea5e9] rounded-full blur-[150px]" />
@@ -84,189 +155,171 @@ export default function Profile() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0f0f0f]/95 backdrop-blur-md border-b border-white/5">
         <div className="px-6 h-16 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-          >
+          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="relative">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#0ea5e9] flex items-center justify-center">
                 <Code2 className="w-5 h-5" />
               </div>
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#0ea5e9] blur-md opacity-50" />
             </div>
             <span className="text-sm text-white/60">CodeAstras</span>
           </button>
 
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors"
-            >
-              Dashboard
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/team')}
-              className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors"
-            >
-              Team
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-all"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+            <button onClick={() => navigate('/dashboard')} className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors">Dashboard</button>
+            {isMe && (
+              <button onClick={() => {
+                localStorage.removeItem('access_token');
+                navigate('/login');
+              }} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:bg-white/10 transition-all">
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Layout */}
       <div className="flex pt-16 min-h-screen">
-        {/* Sidebar Navigation */}
-        <aside className="w-64 bg-[#0f0f0f] border-r border-white/5 p-4 fixed left-0 top-16 bottom-0 overflow-y-auto z-40">
-          <div className="space-y-2">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === item.id
-                    ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border border-[#7c3aed]/50 text-white'
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
-                    }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                  {activeTab === item.id && <ChevronRight className="w-4 h-4 ml-auto" />}
+        {/* Sidebar - ONLY VISIBLE FOR ME (Private View) */}
+        {isMe && (
+          <aside className="w-64 bg-[#0f0f0f] border-r border-white/5 p-4 fixed left-0 top-16 bottom-0 overflow-y-auto z-40">
+            <div className="space-y-2">
+              {visibleItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === item.id
+                      ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#0ea5e9]/20 border border-[#7c3aed]/50 text-white'
+                      : 'text-white/60 hover:bg-white/5 hover:text-white'
+                      }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                    {activeTab === item.id && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </button>
+                );
+              })}
+
+              <div className="pt-4 mt-4 border-t border-white/5">
+                <button onClick={() => {
+                  localStorage.removeItem('access_token');
+                  navigate('/login');
+                }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all">
+                  <LogOut className="w-5 h-5" />
+                  <span className="font-medium">Log Out</span>
                 </button>
-              );
-            })}
-
-            <div className="pt-4 mt-4 border-t border-white/5">
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="font-medium">Log Out</span>
-              </button>
+              </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
 
-        {/* Main Content */}
-        <main className="flex-1 ml-64 p-8 relative z-10">
-          {/* PROFILE TAB */}
-          {activeTab === 'profile' && (
+        {/* Content */}
+        <main className={`flex-1 p-8 relative z-10 transition-all ${isMe ? 'ml-64' : 'max-w-7xl mx-auto w-full'}`}>
+
+          {/* PROFILE VIEW */}
+          {(activeTab === 'profile' || !isMe) && (
             <div className="space-y-8">
-              {/* Profile Header */}
               <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl overflow-hidden">
-                {/* Banner */}
-                <div className="h-40 bg-[#0a0a0a] relative overflow-hidden">
-                  {/* Cosmic gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#7c3aed]/30 via-[#0ea5e9]/20 to-[#7c3aed]/30" />
+                <ProfileBanner
+                  username={profile.username}
+                  stats={{
+                    projects: projectCount,
+                    contributions: profile.stats?.contributions || 0,
+                    streak: profile.stats?.streak || 0,
+                    roomsJoined: profile.stats?.roomsJoined || 0
+                  }}
+                />
 
-                  {/* Grid pattern */}
-                  <div className="absolute inset-0 opacity-20">
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backgroundImage:
-                          'radial-gradient(circle at 2px 2px, rgba(124,58,237,0.4) 1px, transparent 0)',
-                        backgroundSize: '32px 32px',
-                      }}
-                    />
-                  </div>
-
-                  {/* Glowing orbs */}
-                  <div className="absolute top-0 left-1/4 w-32 h-32 bg-[#7c3aed] rounded-full blur-3xl opacity-30" />
-                  <div className="absolute bottom-0 right-1/3 w-40 h-40 bg-[#0ea5e9] rounded-full blur-3xl opacity-20" />
-
-                  {/* Stars */}
-                  <div className="absolute inset-0">
-                    {Array.from({ length: 30 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
-                        style={{
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                          opacity: Math.random() * 0.7 + 0.3,
-                          animationDelay: `${Math.random() * 3}s`,
-                          animationDuration: `${Math.random() * 2 + 2}s`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Profile Info */}
                 <div className="px-8 pb-8">
-                  <div className="flex items-end gap-6 -mt-16 mb-6">
-                    {/* Avatar */}
+                  <div className="flex items-start gap-6 -mt-16 mb-6">
+                    {/* Avatar (No Camera Trigger) */}
                     <div className="relative group">
-                      <div
-                        className="w-32 h-32 rounded-2xl flex items-center justify-center text-3xl font-bold border-4 border-[#0f0f0f] relative z-10"
-                        style={{ backgroundColor: `${userData.color}30`, color: userData.color }}
-                      >
-                        {userData.avatar}
+                      <div className="w-32 h-32 rounded-2xl flex items-center justify-center text-3xl font-bold border-4 border-[#0f0f0f] relative z-10 bg-[#15151a] overflow-hidden text-[#7c3aed]">
+                        {profile.avatarUrl ? (
+                          <img src={profile.avatarUrl} alt={profile.username} className="w-full h-full object-cover" />
+                        ) : (
+                          profile.displayName?.substring(0, 2).toUpperCase() || "ME"
+                        )}
                       </div>
-                      <div
-                        className="absolute inset-0 rounded-2xl blur-xl opacity-70"
-                        style={{ backgroundColor: userData.color }}
-                      />
-                      <button className="absolute bottom-2 right-2 p-2 bg-[#0f0f0f] border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                        <Camera className="w-4 h-4" />
-                      </button>
                     </div>
 
-                    <div className="flex-1 pt-8">
-                      <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 relative z-10 mt-20">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2">
                         <div>
-                          <h1 className="text-3xl font-bold mb-1">{userData.name}</h1>
-                          <p className="text-lg text-white/60">{userData.username}</p>
+                          {/* Name Header */}
+                          <h1 className="text-2xl font-bold mb-1 text-white min-h-[2rem]">
+                            {(() => {
+                              // Extract raw values
+                              const vals = [
+                                profile.displayName,
+                                profile.fullName,
+                                profile.name,
+                                profile.username
+                              ].map(v => v?.trim());
+
+                              const [dn, fn, n, un] = vals;
+
+                              // 1. Display Name (if valid)
+                              if (dn && dn.length > 0 && dn !== '?' && dn !== 'User') return dn;
+                              // 2. Full Name
+                              if (fn && fn.length > 0) return fn;
+                              // 3. Name (Google Auth Name)
+                              if (n && n.length > 0 && n !== 'User') return n;
+                              // 4. Username (Fallback)
+                              return un || "Unknown Star";
+                            })()}
+                          </h1>
+
+                          {/* Username Handle */}
+                          <p className="text-lg text-white/50 font-medium">@{profile.username}</p>
                         </div>
-                        <button className="px-4 py-2 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all flex items-center gap-2">
-                          <Edit3 className="w-4 h-4" />
-                          Edit Profile
-                        </button>
+
+                        {/* Only Share button here, Edit is in Settings */}
+                        <div className="flex items-center gap-2">
+                          {!isMe && (
+                            <button onClick={() => {
+                              navigator.clipboard.writeText(window.location.href);
+                              toast.success("Profile link copied!");
+                            }} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all flex items-center gap-2 text-sm whitespace-nowrap">
+                              <Share2 className="w-4 h-4" />
+                              Share
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      <p className="text-white/70 mb-4 max-w-2xl">{userData.bio}</p>
+                      <p className="text-white/70 mb-4 max-w-2xl min-h-[1.5rem]">{profile.bio || "No bio yet."}</p>
 
                       <div className="flex items-center gap-6 text-sm text-white/60">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          {userData.location}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4" />
-                          {userData.email}
-                        </div>
+                        {profile.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            {profile.location}
+                          </div>
+                        )}
+                        {isMe && profile.email && (
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4" />
+                            {profile.email}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          Joined {userData.joinDate}
+                          Joined {new Date(profile.joinedAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Quick Stats */}
+                  {/* Stats */}
                   <div className="grid grid-cols-5 gap-4">
                     {stats.map((stat) => {
                       const Icon = stat.icon;
                       return (
-                        <div
-                          key={stat.label}
-                          className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:border-white/20 transition-all group"
-                        >
+                        <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:border-white/20 transition-all group">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 rounded-lg" style={{ backgroundColor: `${stat.color}20` }}>
                               <Icon className="w-5 h-5" style={{ color: stat.color }} />
@@ -287,7 +340,6 @@ export default function Profile() {
                   <TrendingUp className="w-6 h-6 text-[#7c3aed]" />
                   Recent Activity
                 </h2>
-
                 <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
                   <div className="text-white/40 font-medium text-lg">Coming Soon</div>
                   <div className="text-sm text-white/20">We are tracking your coding journey across the cosmos</div>
@@ -296,97 +348,64 @@ export default function Profile() {
             </div>
           )}
 
-          {/* BADGES TAB */}
-          {activeTab === 'badges' && (
+          {/* OTHER TABS - Only for ME */}
+          {isMe && activeTab === 'badges' && (
             <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                  <Award className="w-8 h-8 text-[#7c3aed]" />
-                  Achievement Badges
-                </h1>
-                <p className="text-white/60">Unlock rewards as you code</p>
-              </div>
-
+              <div><h1 className="text-3xl font-bold mb-2 flex items-center gap-3"><Award className="w-8 h-8 text-[#7c3aed]" />Achievement Badges</h1></div>
               <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
                 <div className="text-white/40 font-medium text-lg">Coming Soon</div>
-                <div className="text-sm text-white/20">Badges and achievements system is under development</div>
+              </div>
+            </div>
+          )}
+          {isMe && activeTab === 'streaks' && (
+            <div className="space-y-8">
+              <div><h1 className="text-3xl font-bold mb-2 flex items-center gap-3"><Flame className="w-8 h-8 text-[#f59e0b]" />Coding Streaks</h1></div>
+              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
+              </div>
+            </div>
+          )}
+          {isMe && activeTab === 'contributions' && (
+            <div className="space-y-8">
+              <div><h1 className="text-3xl font-bold mb-2 flex items-center gap-3"><GitBranch className="w-8 h-8 text-[#7c3aed]" />Contribution Graph</h1></div>
+              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
               </div>
             </div>
           )}
 
-          {/* STREAKS TAB */}
-          {activeTab === 'streaks' && (
+          {/* SETTINGS TAB - Only for ME */}
+          {isMe && activeTab === 'settings' && (
             <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                  <Flame className="w-8 h-8 text-[#f59e0b]" />
-                  Coding Streaks
-                </h1>
-                <p className="text-white/60">Keep the fire burning! 🔥</p>
-              </div>
+              <div><h1 className="text-3xl font-bold mb-2 flex items-center gap-3"><Settings className="w-8 h-8 text-[#7c3aed]" />Settings</h1></div>
 
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
-                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
-                <div className="text-sm text-white/20">Daily coding streaks and rewards are on the way</div>
+              {/* Inline Profile Settings Form */}
+              {profile && (
+                <ProfileSettings
+                  currentUser={profile}
+                  onProfileUpdate={fetchProfile}
+                />
+              )}
+
+              {/* Account Preferences Card (Still as a card or can be moved later) */}
+              <div className="grid grid-cols-1 gap-6 mt-8">
+                <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all opacity-60">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-[#0ea5e9]/10 rounded-xl text-[#0ea5e9]">
+                      <Palette className="w-6 h-6" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">App Preferences</h3>
+                  <p className="text-white/60 mb-6 text-sm">
+                    Customize your workspace appearance and notification settings. (Coming Soon)
+                  </p>
+                </div>
               </div>
             </div>
           )}
 
-          {/* CONTRIBUTIONS TAB */}
-          {activeTab === 'contributions' && (
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                  <GitBranch className="w-8 h-8 text-[#7c3aed]" />
-                  Contribution Graph
-                </h1>
-              </div>
-
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
-                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
-                <div className="text-sm text-white/20">Visualize your coding activity and impact</div>
-              </div>
-            </div>
-          )}
-
-          {/* SETTINGS TAB */}
-          {activeTab === 'settings' && (
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                  <Settings className="w-8 h-8 text-[#7c3aed]" />
-                  Account Settings
-                </h1>
-                <p className="text-white/60">Manage your account and security</p>
-              </div>
-
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
-                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
-                <div className="text-sm text-white/20">Account settings and security controls are under development</div>
-              </div>
-            </div>
-          )}
-
-          {/* PREFERENCES TAB */}
-          {activeTab === 'preferences' && (
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                  <Palette className="w-8 h-8 text-[#7c3aed]" />
-                  Preferences
-                </h1>
-                <p className="text-white/60">Customize your CodeAstras experience</p>
-              </div>
-
-              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl h-[400px] flex flex-col items-center justify-center gap-4 text-center">
-                <div className="text-white/40 font-medium text-lg">Coming Soon</div>
-                <div className="text-sm text-white/20">Advanced customization options are coming soon</div>
-              </div>
-            </div>
-          )}
-
-        </main >
-      </div >
-    </div >
+        </main>
+      </div>
+    </div>
   );
 }
