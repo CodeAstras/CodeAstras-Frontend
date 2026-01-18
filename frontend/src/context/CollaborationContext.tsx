@@ -59,9 +59,7 @@ export const CollaborationProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     }, []);
 
-    // ... (WebSocket setup remains same) ...
-
-    const handleWebSocketEvent = (event: any) => {
+    const handleWebSocketEvent = useCallback((event: any) => {
         console.log("📩 WS Event:", event);
         switch (event.type) {
             case "INVITE_SENT":
@@ -78,7 +76,66 @@ export const CollaborationProvider: React.FC<{ children: React.ReactNode }> = ({
             default:
                 break;
         }
-    };
+    }, [refreshInvites]);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        // If no token, we can't authenticate the socket generally (unless public)
+        // But for invites we definitely need user context.
+        if (!token) return;
+
+        let userId: string | undefined;
+        try {
+            const decoded = jwtDecode<DecodedToken>(token);
+            // Support both standard 'sub' or custom 'userId' claims
+            userId = decoded.userId || decoded.sub;
+        } catch (e) {
+            console.error("Failed to decode token for WS", e);
+        }
+
+        if (!userId) return;
+
+        console.log("🔌 Connecting to WebSocket for user:", userId);
+
+        const socket = new SockJS('http://localhost:8080/ws');
+        const client = new Client({
+            webSocketFactory: () => socket,
+            connectHeaders: {
+                Authorization: `Bearer ${token}`
+            },
+            reconnectDelay: 5000,
+            onConnect: () => {
+                console.log("✅ WebSocket Connected");
+                setIsConnected(true);
+
+                // Subscribe to user-specific topic
+                client.subscribe(`/topic/user/${userId}`, (message: IMessage) => {
+                    try {
+                        const payload = JSON.parse(message.body);
+                        handleWebSocketEvent(payload);
+                    } catch (err) {
+                        console.error("WS Message Parse Error", err);
+                    }
+                });
+            },
+            onDisconnect: () => {
+                console.log("❌ WebSocket Disconnected");
+                setIsConnected(false);
+            },
+            onStompError: (frame) => {
+                console.error('WS Broker error: ' + frame.headers['message']);
+            }
+        });
+
+        client.activate();
+        setStompClient(client);
+
+        return () => {
+            if (client.active) {
+                client.deactivate();
+            }
+        };
+    }, [handleWebSocketEvent]);
 
     // Actions
     const acceptInvite = async (invitationId: string) => {
