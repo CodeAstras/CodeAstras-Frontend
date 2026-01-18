@@ -1,10 +1,16 @@
-import { UserPlus, Crown, Code, Eye } from 'lucide-react';
+import { UserPlus, Crown, Code, Eye, MoreVertical, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCollab } from '../../context/CollaborationContext';
 import { collabApi } from '../../services/collabApi';
 import { toast } from 'sonner';
 import { profileService } from '../../services/profileService';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 export function ParticipantsList() {
   const { projectId } = useParams();
@@ -83,11 +89,13 @@ export function ParticipantsList() {
       setInviting(true);
       await collabApi.inviteCollaborator(projectId, inviteInput);
       toast.success(`Invite sent to ${inviteInput}`);
+      await refreshCollaborators(projectId);
       setInviteInput('');
       setShowInvite(false);
     } catch (error: any) {
       console.error("Invite failed", error);
-      toast.error(error.message || "Failed to send invite");
+      const errorMessage = error.response?.data?.message || error.message || "Failed to send invite";
+      toast.error(errorMessage);
     } finally {
       setInviting(false);
     }
@@ -201,9 +209,35 @@ export function ParticipantsList() {
 
                 {/* Quick actions (admin only ideally) */}
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="p-1 hover:bg-white/10 rounded text-xs text-white/60 hover:text-white">
-                    ···
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-1 hover:bg-white/10 rounded text-xs text-white/50 hover:text-white transition-colors focus:outline-none">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 bg-[#18181b] border-white/10 text-white">
+                      <DropdownMenuItem
+                        className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer text-xs"
+                        onClick={async (e) => {
+                          e.stopPropagation(); // prevent row click if needed
+                          if (!confirm("Remove this user?")) return;
+                          try {
+                            await collabApi.removeCollaborator(projectId!, realId);
+                            toast.success("User removed");
+                            // Small delay to ensure DB commit propagates before refetching
+                            setTimeout(() => {
+                              refreshCollaborators(projectId!);
+                            }, 100);
+                          } catch (err: any) {
+                            toast.error(err.response?.data?.message || err.message || "Failed");
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-2" />
+                        Remove
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             );

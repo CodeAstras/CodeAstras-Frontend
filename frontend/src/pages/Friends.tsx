@@ -62,6 +62,10 @@ export default function Friends() {
                 try {
                     const collabs = await collabApi.getProjectCollaborators(project.id);
                     collabs.forEach(c => {
+                        // FIX: Only show ACCEPTED collaborators as friends
+                        console.log("Checking friend candidate:", c.email || c.username, "Status:", c.status);
+                        if (c.status !== 'ACCEPTED') return;
+
                         const realId = c.id || c.userId || c.email || c.nameOrEmail;
                         if (realId && realId !== myId && !uniqueFriends.has(realId)) {
                             // Robust name derivation
