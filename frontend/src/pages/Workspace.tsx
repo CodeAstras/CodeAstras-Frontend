@@ -55,9 +55,31 @@ export default function Workspace() {
   type RightTool = "video" | "chat" | "collaborators" | "ai" | "settings";
   const [activeTool, setActiveTool] = useState<RightTool>("video");
 
+  /* Project Name Management */
   const location = useLocation();
   const state = location.state as { projectName?: string } | null;
-  const projectName = state?.projectName ?? "CodeAstras";
+  // Initialize with passed state, or "Loading..." (or empty) to prevent flash of wrong name
+  const [projectName, setProjectName] = useState<string>(state?.projectName || "Loading...");
+
+  useEffect(() => {
+    // If name is missing (e.g. direct URL load), fetch it
+    const fetchProjectName = async () => {
+      if (!projectId) return;
+      try {
+        // If we already have it from nav state, don't refetch immediately unless we want to ensure freshness
+        // But for this requirement, if it's "Loading..." or we just want to be sure:
+        if (projectName === "Loading..." || !state?.projectName) {
+          const res = await api.get(`/projects/${projectId}`);
+          setProjectName(res.data.name);
+        }
+      } catch (err) {
+        console.error("Failed to fetch project details", err);
+        setProjectName("CodeAstras Workspace");
+      }
+    };
+
+    fetchProjectName();
+  }, [projectId]);
 
   // ---------------- API calls ----------------
 
