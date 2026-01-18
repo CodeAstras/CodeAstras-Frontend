@@ -29,7 +29,7 @@ const VideoPlayer = ({ stream, isMe = false }: { stream?: MediaStream | null, is
       muted={isMe} // Mute self to prevent feedback
       className={cn(
         "w-full h-full object-cover",
-        isMe && "transform scale-x-[-1]" // Only mirror myself
+        isMe && "transform scale-x-[-1]" // Restored: Self-view should be mirrored (Discord style)
       )}
     />
   );
@@ -127,6 +127,11 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] relative font-sans">
+      {/* Header */}
+      <div className="px-3 py-2 flex items-center justify-between border-b border-white/5 bg-[#0f0f0f]">
+        <span className="text-xs font-semibold tracking-wide text-white/60">VIDEO & VOICE</span>
+      </div>
+
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-green-500 animate-pulse" : "bg-red-500")} />
@@ -273,7 +278,7 @@ export function VideoPanel({ mode, onModeChange }: VideoPanelProps) {
 
         {isConnected ? (
           <button
-            onClick={leaveCall}
+            onClick={() => leaveCall(true)}
             title="Leave Call"
             className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/80 hover:bg-red-500 text-white shadow-lg shadow-red-500/20 transition-all"
           >

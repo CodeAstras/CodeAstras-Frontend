@@ -23,7 +23,7 @@ class VoiceWebSocketService {
     private projectId: string | null = null;
     private onSignal: ((signal: SignalMessage | CallParticipantsMessage) => void) | null = null;
 
-    connect(projectId: string, onSignal: (signal: SignalMessage | CallParticipantsMessage) => void): Promise<void> {
+    connect(projectId: string, onSignal: (signal: SignalMessage | CallParticipantsMessage) => void, onDisconnect?: () => void): Promise<void> {
         this.projectId = projectId;
         this.onSignal = onSignal;
 
@@ -49,6 +49,8 @@ class VoiceWebSocketService {
                 connectHeaders: {
                     Authorization: `Bearer ${token}`,
                 },
+                heartbeatIncoming: 10000,
+                heartbeatOutgoing: 10000,
                 reconnectDelay: 5000,
                 debug: (str) => console.log(`[VoiceWS]: ${str}`),
                 onStompError: (frame) => {
@@ -58,6 +60,7 @@ class VoiceWebSocketService {
                 },
                 onWebSocketClose: () => {
                     console.warn("Voice WebSocket closed");
+                    if (onDisconnect) onDisconnect();
                 }
             });
 

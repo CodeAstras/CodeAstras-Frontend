@@ -1,4 +1,4 @@
-import { UserPlus, Crown, Code, Eye, MoreVertical, Trash2 } from 'lucide-react';
+import { UserPlus, Crown, Code, Eye, MoreVertical, Trash2, ChevronDown, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCollab } from '../../context/CollaborationContext';
@@ -20,6 +20,7 @@ export function ParticipantsList() {
   const [inviteInput, setInviteInput] = useState('');
   const [inviteRole, setInviteRole] = useState<'COLLABORATOR' | 'VIEWER'>('COLLABORATOR');
   const [isInviting, setInviting] = useState(false);
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [collaboratorNames, setCollaboratorNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -118,10 +119,12 @@ export function ParticipantsList() {
     <div className="border-b border-white/5 bg-[#0f0f0f] h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
-        <div className="text-sm text-white/90">Project Collaborators</div>
-        <button className="p-2 hover:bg-white/10 rounded transition-colors" title="Invite user" onClick={() => setShowInvite(true)}>
-          <UserPlus className="w-4 h-4 text-white/60" />
-        </button>
+        <div className="text-xs font-semibold tracking-wide text-white/60 uppercase">COLLABORATORS</div>
+        <div className="flex items-center gap-1">
+          <button className="p-1 hover:bg-white/10 rounded transition-colors" title="Invite user" onClick={() => setShowInvite(true)}>
+            <UserPlus className="w-4 h-4 text-white/60" />
+          </button>
+        </div>
       </div>
 
       {/* Participants list */}
@@ -245,45 +248,90 @@ export function ParticipantsList() {
         )}
       </div>
 
-      {/* Invite button */}
-      <div className="p-3 border-t border-white/5 flex-shrink-0">
-        <button
-          className="w-full px-4 py-2 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all duration-300 text-sm flex items-center justify-center gap-2"
-          onClick={() => setShowInvite(true)}
-        >
-          <UserPlus className="w-4 h-4" />
-          Invite to Workspace
-        </button>
-      </div>
 
-      {/* Invite Modal */}
+
       {showInvite && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#18181b] rounded-xl shadow-2xl border border-white/10 p-6 w-80 relative">
-            <button className="absolute top-2 right-2 text-white/50 hover:text-white" onClick={() => setShowInvite(false)}>&times;</button>
-            <div className="mb-4 text-lg font-semibold text-white">Invite to Workspace</div>
-            <div className="space-y-3">
-              <input
-                className="w-full px-3 py-2 rounded bg-[#23232b] text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#7c3aed]"
-                placeholder="Email address"
-                value={inviteInput}
-                onChange={e => setInviteInput(e.target.value)}
-              />
-              <select
-                className="w-full px-3 py-2 rounded bg-[#23232b] text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#7c3aed]"
-                value={inviteRole}
-                onChange={e => setInviteRole(e.target.value as any)}
-              >
-                <option value="COLLABORATOR">Collaborator</option>
-                <option value="VIEWER">Viewer</option>
-              </select>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowInvite(false)}>
+          <div className="bg-[#18181b] rounded-xl shadow-2xl border border-white/10 p-8 w-[600px] relative" onClick={e => e.stopPropagation()}>
+
+            {/* Header with Flexbox to prevent overlap */}
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-1">Invite to Workspace</h2>
+                <p className="text-white/40 text-sm">Add members to collaborate on this project.</p>
+              </div>
               <button
-                disabled={isInviting}
-                className="w-full mt-2 px-4 py-2 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:shadow-lg hover:shadow-[#7c3aed]/30 transition-all duration-300 text-sm font-semibold text-white disabled:opacity-50"
-                onClick={handleInvite}
+                className="text-white/50 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10"
+                onClick={() => setShowInvite(false)}
               >
-                {isInviting ? "Sending..." : "Send Invite"}
+                <X className="w-5 h-5" />
               </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-white/40 uppercase tracking-wider ml-1">Email Address</label>
+                <input
+                  className="w-full px-4 py-3 rounded-lg bg-[#27272a] text-white border border-white/5 focus:outline-none focus:ring-2 focus:ring-[#7c3aed] transition-all placeholder:text-white/20"
+                  placeholder="name@example.com"
+                  value={inviteInput}
+                  onChange={e => setInviteInput(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5 relative z-50">
+                <label className="text-[11px] font-bold text-white/40 uppercase tracking-widest pl-1">Role</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    className={`relative p-3 rounded-xl border transition-all duration-200 text-left group overflow-hidden ${inviteRole === 'COLLABORATOR'
+                      ? 'bg-[#7c3aed]/10 border-[#7c3aed] ring-1 ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.15)]'
+                      : 'bg-[#18181b] border-white/5 hover:border-white/10 hover:bg-[#202023]'
+                      }`}
+                    onClick={() => setInviteRole('COLLABORATOR')}
+                  >
+                    <div className="flex flex-col gap-2 relative z-10">
+                      <div className={`p-2 w-fit rounded-lg transition-colors ${inviteRole === 'COLLABORATOR' ? 'bg-[#7c3aed] text-white shadow-lg shadow-[#7c3aed]/25' : 'bg-white/5 text-white/40 group-hover:text-white/60'
+                        }`}>
+                        <Code className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className={`font-bold text-sm mb-0.5 ${inviteRole === 'COLLABORATOR' ? 'text-white' : 'text-white/70'}`}>Collaborator</div>
+                        <div className={`text-[10px] leading-tight ${inviteRole === 'COLLABORATOR' ? 'text-[#e9d5ff]' : 'text-white/30'}`}>Edit, manage & deploy</div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    className={`relative p-3 rounded-xl border transition-all duration-200 text-left group overflow-hidden ${inviteRole === 'VIEWER'
+                      ? 'bg-[#7c3aed]/10 border-[#7c3aed] ring-1 ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.15)]'
+                      : 'bg-[#18181b] border-white/5 hover:border-white/10 hover:bg-[#202023]'
+                      }`}
+                    onClick={() => setInviteRole('VIEWER')}
+                  >
+                    <div className="flex flex-col gap-2 relative z-10">
+                      <div className={`p-2 w-fit rounded-lg transition-colors ${inviteRole === 'VIEWER' ? 'bg-[#7c3aed] text-white shadow-lg shadow-[#7c3aed]/25' : 'bg-white/5 text-white/40 group-hover:text-white/60'
+                        }`}>
+                        <Eye className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className={`font-bold text-sm mb-0.5 ${inviteRole === 'VIEWER' ? 'text-white' : 'text-white/70'}`}>Viewer</div>
+                        <div className={`text-[10px] leading-tight ${inviteRole === 'VIEWER' ? 'text-[#e9d5ff]' : 'text-white/30'}`}>Read-only access</div>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 relative z-10">
+                <button
+                  disabled={isInviting}
+                  className="w-full py-3.5 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-xl hover:opacity-90 transition-all duration-300 text-sm font-bold text-white shadow-lg shadow-[#7c3aed]/25 disabled:opacity-50 disabled:shadow-none"
+                  onClick={handleInvite}
+                >
+                  {isInviting ? "Sending Invitation..." : "Send Invite"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

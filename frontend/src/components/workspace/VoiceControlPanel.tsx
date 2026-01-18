@@ -43,7 +43,7 @@ export function VoiceControlPanel() {
                 </Button>
 
                 <Button
-                    onClick={leaveCall}
+                    onClick={() => leaveCall(true)}
                     variant="destructive"
                     size="icon"
                     className="rounded-xl w-10 h-10 bg-red-500/80 hover:bg-red-500 shadow-lg shadow-red-500/20"

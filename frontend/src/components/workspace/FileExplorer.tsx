@@ -35,15 +35,15 @@ export function FileExplorer({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 
+  const [creationState, setCreationState] = useState<{ type: "FILE" | "FOLDER"; parentPath: string } | null>(null);
+  const [newItemName, setNewItemName] = useState("");
+
   const toggleFolder = (path: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setExpanded((prev) => ({ ...prev, [path]: !prev[path] }));
   };
 
   const handleFolderClick = (path: string) => {
-    // If clicking the same folder, just toggle selection (deselect)
-    // or keep it selected? Let's keep it selected.
-    // If different, select it.
     if (selectedFolder === path) {
       setSelectedFolder(null); // click again to deselect
     } else {
@@ -51,27 +51,60 @@ export function FileExplorer({
     }
   };
 
-  const handleNewFile = () => {
-    const parentPath = selectedFolder ? `${selectedFolder}/` : "";
-    const name = prompt(
-      `New file name (creating in: ${selectedFolder || "root"})`
-    );
-    if (!name) return;
-
-    // Auto-prepend parent path if user didn't type it
-    const finalPath = name.startsWith(parentPath) ? name : `${parentPath}${name}`;
-    onCreate(finalPath, "FILE");
+  const startCreation = (type: "FILE" | "FOLDER") => {
+    const parentPath = selectedFolder || "";
+    setCreationState({ type, parentPath });
+    setNewItemName("");
+    // Ensure parent is expanded if we are inside a folder
+    if (parentPath) {
+      setExpanded((prev) => ({ ...prev, [parentPath]: true }));
+    }
   };
 
-  const handleNewFolder = () => {
-    const parentPath = selectedFolder ? `${selectedFolder}/` : "";
-    const name = prompt(
-      `New folder name (creating in: ${selectedFolder || "root"})`
-    );
-    if (!name) return;
+  const handleCreationSubmit = () => {
+    if (!newItemName.trim() || !creationState) {
+      setCreationState(null);
+      return;
+    }
 
-    const finalPath = name.startsWith(parentPath) ? name : `${parentPath}${name}`;
-    onCreate(finalPath, "FOLDER");
+    const parentPath = creationState.parentPath ? `${creationState.parentPath}/` : "";
+    const finalPath = `${parentPath}${newItemName.trim()}`;
+
+    onCreate(finalPath, creationState.type);
+    setCreationState(null);
+    setNewItemName("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleCreationSubmit();
+    if (e.key === "Escape") setCreationState(null);
+  };
+
+  const renderCreationInput = (depth: number) => {
+    const paddingLeft = 8 + depth * 12;
+    return (
+      <div
+        className="flex items-center gap-1.5 px-2 py-1"
+        style={{ paddingLeft }}
+      >
+        <span className="w-3 inline-block" />
+        {creationState?.type === "FOLDER" ? (
+          <FolderIcon className="w-3.5 h-3.5 text-[#fbbf24]" />
+        ) : (
+          <FileIcon className="w-3.5 h-3.5 text-white/60" />
+        )}
+        <input
+          autoFocus
+          className="bg-[#18181b] text-white text-xs border border-blue-500/50 rounded px-1.5 py-0.5 outline-none min-w-[120px] shadow-lg shadow-blue-500/10"
+          value={newItemName}
+          onChange={(e) => setNewItemName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => setCreationState(null)}
+          placeholder={creationState?.type === "FILE" ? "File name..." : "Folder name..."}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    );
   };
 
   const safeChildren = (node: FileNode): FileNode[] =>
@@ -83,13 +116,14 @@ export function FileExplorer({
     if (node.type === "FOLDER") {
       const isOpen = expanded[node.path];
       const isSelected = selectedFolder === node.path;
+      const isCreatingHere = creationState?.parentPath === node.path;
 
       return (
         <div key={node.path}>
           <div
             className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded cursor-pointer transition-colors ${isSelected
-                ? "bg-blue-600/20 text-blue-200"
-                : "text-white/80 hover:bg-white/5"
+              ? "bg-blue-600/20 text-blue-200"
+              : "text-white/80 hover:bg-white/5"
               }`}
             style={{ paddingLeft }}
             onClick={() => handleFolderClick(node.path)}
@@ -108,10 +142,14 @@ export function FileExplorer({
             <span className="truncate">{node.name}</span>
           </div>
 
-          {isOpen &&
-            safeChildren(node).map((child) =>
-              renderNode(child, depth + 1)
-            )}
+          {isOpen && (
+            <>
+              {isCreatingHere && renderCreationInput(depth + 1)}
+              {safeChildren(node).map((child) =>
+                renderNode(child, depth + 1)
+              )}
+            </>
+          )}
         </div>
       );
     }
@@ -140,7 +178,7 @@ export function FileExplorer({
 
         <div className="flex items-center gap-1">
           <button
-            onClick={handleNewFile}
+            onClick={() => startCreation("FILE")}
             className="w-7 h-7 flex items-center justify-center rounded hover:bg-white/10 text-white/70"
             title={selectedFolder ? `New File in ${selectedFolder}` : "New File"}
           >
@@ -148,7 +186,7 @@ export function FileExplorer({
           </button>
 
           <button
-            onClick={handleNewFolder}
+            onClick={() => startCreation("FOLDER")}
             className="w-7 h-7 flex items-center justify-center rounded hover:bg-white/10 text-white/70"
             title={selectedFolder ? `New Folder in ${selectedFolder}` : "New Folder"}
           >
@@ -177,7 +215,10 @@ export function FileExplorer({
       </div>
 
       <div className="flex-1 overflow-auto py-2">
-        {Array.isArray(tree) && tree.length === 0 ? (
+        {/* Input at Root Level */}
+        {creationState?.parentPath === "" && renderCreationInput(0)}
+
+        {Array.isArray(tree) && tree.length === 0 && !creationState ? (
           <div className="px-3 text-xs text-white/40">
             No files yet
           </div>
