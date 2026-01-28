@@ -1,27 +1,27 @@
-# CodeAstras 🚀
+# CodeAstras 
 
 **CodeAstras** is a next-generation real-time collaborative coding platform designed to blend the best of IDE capability with seamless social communication. Think of it as "Google Docs for Code" meets "Discord".
 
-## ✨ Key Features
+## Key Features
 
-### 💻 Real-time Collaborative Workspace
+### Real-time Collaborative Workspace
 - **Monaco Editor Integration**: Full-featured code editor experience (VS Code-like).
 - **Multi-file Support**: Create, edit, and reorganize files in a virtual file system.
 - **Terminal Integration**: Integrated terminal window for output and commands.
 
-### 🎙️ Voice & Video Collaboration ("Live Session")
+### Voice & Video Collaboration ("Live Session")
 - **Crystal Clear Voice**: Low-latency voice chat powered by WebRTC.
 - **Live Video**: See your team members while you code.
 - **Active Speaker Detection**: Visual indicators (cyan borders, glow effects) for who is talking.
 - **Toolbar Controls**: Integrated mute, video toggle, and join/leave controls directly in the workspace side panel.
 - **Visual Feedback**: "Live Session" indicators and participant grids.
 
-### 🤝 Social & Teams
+### Social & Teams
 - **Friends System**: Add collaborative partners and see their online status.
 - **Teams & Rooms**: Organize projects into Teams and create persistent Rooms for sprints or casual coding.
 - **Dashboard**: Central hub for managing projects, viewing recent activity, and accessing teams.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework**: [React 18](https://react.dev/)
@@ -37,7 +37,7 @@
 - **WebRTC**: Peer-to-Peer audio and video streaming.
 - **Signaling**: Custom backend signaling service (Spring Boot).
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js (v18 or higher recommended)
@@ -69,7 +69,7 @@ npm run dev
 
 The application will be available at `http://localhost:5173` (or the port shown in your terminal).
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 frontend/
@@ -85,8 +85,8 @@ frontend/
 └── public/               # Static assets
 ```
 
-## 🔐 Authentication
+## Authentication
 The application uses JWT-based authentication. Ensure you have a valid backend running or appropriate mock tokens for testing protected routes.
 
 ---
-*Built with ❤️ by the CodeAstras Team*
+*Built by the CodeAstras Team*
