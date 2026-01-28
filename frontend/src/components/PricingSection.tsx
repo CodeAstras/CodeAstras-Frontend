@@ -121,19 +121,41 @@ export function PricingSection() {
   const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
 
   return (
-    <section ref={ref} className="relative py-8 md:py-12 px-4 md:px-8 overflow-hidden">
+    <section ref={ref} className="relative py-12 md:py-16 lg:py-20 px-4 md:px-8 overflow-hidden">
       {/* Animated cosmic background */}
       <motion.div
         className="absolute inset-0 opacity-20"
         style={{ y: backgroundY }}
       >
-        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-gradient-to-br from-cyan-400/30 to-purple-500/30 blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 blur-3xl" />
+        <motion.div
+          className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-gradient-to-br from-cyan-400/30 to-purple-500/30 blur-3xl"
+          animate={{
+            x: [0, 40, 0],
+            y: [0, -30, 0]
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 blur-3xl"
+          animate={{
+            x: [0, -40, 0],
+            y: [0, 30, 0]
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </motion.div>
 
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 rounded-full bg-cyan-400"
@@ -143,27 +165,29 @@ export function PricingSection() {
               boxShadow: "0 0 10px rgba(0, 229, 255, 0.8)",
             }}
             animate={{
-              y: [0, -100, 0],
-              opacity: [0, 1, 0],
+              y: [0, -120, 0],
+              opacity: [0, 0.8, 0],
+              x: [0, Math.random() * 30 - 15, 0],
             }}
             transition={{
-              duration: 5 + Math.random() * 5,
+              duration: 6 + Math.random() * 4,
               repeat: Infinity,
               delay: Math.random() * 5,
+              ease: "easeInOut",
             }}
           />
         ))}
       </div>
 
-      <div className="relative z-10 max-w-[1600px] mx-auto">
+      <div className="relative z-10 max-w-7xl mx-auto">
         {/* Section Header */}
         <ScrollScale3D>
           <motion.div
-            className="text-center mb-8 md:mb-12"
-            initial={{ opacity: 0, y: 20 }}
+            className="text-center mb-12 md:mb-16"
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <h2 className="text-3xl md:text-4xl xl:text-5xl mb-3 md:mb-4">
               <span className="relative inline-block">
@@ -173,9 +197,15 @@ export function PricingSection() {
                 </span>
               </span>
             </h2>
-            <p className="text-sm md:text-base text-gray-400 max-w-2xl mx-auto">
+            <motion.p
+              className="text-sm md:text-base text-gray-400 max-w-2xl mx-auto"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2, duration: 1 }}
+            >
               From solo developers to enterprise teams, find the perfect plan to power your collaborative coding journey
-            </p>
+            </motion.p>
           </motion.div>
         </ScrollScale3D>
 
@@ -199,8 +229,9 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
     offset: ["start end", "center center"],
   });
 
-  const scale = useTransform(scrollYProgress, [0, 1], [0.9, 1]);
-  const rotateY = useTransform(scrollYProgress, [0, 1], [15, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.85, 1]);
+  const rotateY = useTransform(scrollYProgress, [0, 1], [20, 0]);
+  const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0.8]);
 
   return (
     <motion.div
@@ -209,19 +240,26 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
       style={{
         scale,
         rotateY,
+        opacity,
         transformPerspective: 1200,
       }}
     >
       {/* Popular badge */}
       {plan.popular && (
         <motion.div
-          className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 rounded-full backdrop-blur-xl bg-gradient-to-r from-purple-500 to-pink-500 border border-white/20 text-xs"
+          className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 rounded-full backdrop-blur-xl bg-gradient-to-r from-purple-500 to-pink-500 border border-white/20 text-xs font-medium"
           animate={{
-            y: [0, -5, 0],
+            y: [0, -6, 0],
+            boxShadow: [
+              "0 0 20px rgba(168, 85, 247, 0.3)",
+              "0 0 40px rgba(168, 85, 247, 0.6)",
+              "0 0 20px rgba(168, 85, 247, 0.3)",
+            ]
           }}
           transition={{
-            duration: 2,
+            duration: 2.5,
             repeat: Infinity,
+            ease: "easeInOut"
           }}
         >
           Most Popular
@@ -229,22 +267,23 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
       )}
 
       {/* Glow effect */}
-      <div
-        className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-500"
+      <motion.div
+        className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700"
         style={{ background: plan.glowColor }}
       />
 
       {/* Card */}
       <motion.div
-        className={`relative p-6 md:p-8 rounded-3xl backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 border-2 ${plan.popular ? 'border-purple-500/50' : 'border-white/10'
-          } group-hover:border-white/30 transition-all duration-300 h-full flex flex-col min-h-[600px]`}
-        whileHover={{ y: -10 }}
+        className={`relative p-6 md:p-8 rounded-3xl backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 border-2 ${plan.popular ? 'border-purple-500/50 group-hover:border-purple-400/70' : 'border-white/10 group-hover:border-white/30'
+          } transition-all duration-300 h-full flex flex-col min-h-[600px]`}
+        whileHover={{ y: -12, boxShadow: "0 30px 80px rgba(0, 229, 255, 0.1)" }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         {/* Icon */}
         <motion.div
-          className={`w-14 h-14 md:w-16 md:h-16 mb-4 rounded-2xl bg-gradient-to-br ${plan.gradient} bg-opacity-20 backdrop-blur-xl border border-white/20 flex items-center justify-center`}
-          whileHover={{ rotate: 360, scale: 1.1 }}
-          transition={{ duration: 0.6 }}
+          className={`w-14 h-14 md:w-16 md:h-16 mb-4 rounded-2xl bg-gradient-to-br ${plan.gradient} bg-opacity-20 backdrop-blur-xl border border-white/20 flex items-center justify-center group-hover:border-white/40 transition-colors duration-300`}
+          whileHover={{ rotate: [0, 8, -8, 8, 0], scale: 1.15 }}
+          transition={{ duration: 0.7, ease: "easeInOut" }}
         >
           <plan.icon
             className={`w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br ${plan.gradient} bg-clip-text text-transparent`}
@@ -254,41 +293,68 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
 
         {/* Plan name & tagline */}
         <div className="mb-6">
-          <h3 className={`text-2xl md:text-3xl mb-2 bg-gradient-to-br ${plan.gradient} bg-clip-text text-transparent`}>
+          <motion.h3
+            className={`text-2xl md:text-3xl mb-2 bg-gradient-to-br ${plan.gradient} bg-clip-text text-transparent font-semibold`}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.8 }}
+          >
             {plan.name}
-          </h3>
-          <p className="text-xs md:text-sm text-gray-400 min-h-[2.5rem]">
+          </motion.h3>
+          <motion.p
+            className="text-xs md:text-sm text-gray-400 min-h-[2.5rem]"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.15, duration: 0.8 }}
+          >
             {plan.tagline}
-          </p>
+          </motion.p>
         </div>
 
         {/* Price */}
         <div className="mb-6 md:mb-8 min-h-[5rem]">
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl md:text-4xl">{plan.price}</span>
+          <motion.div
+            className="flex items-baseline gap-2"
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+          >
+            <span className="text-3xl md:text-4xl font-semibold">{plan.price}</span>
             {plan.priceDetail && plan.priceDetail !== "Forever" && plan.priceDetail !== "Contact Sales" && plan.priceDetail !== "Event or Student Access" && (
               <span className="text-gray-400 text-sm">/{plan.priceDetail}</span>
             )}
-          </div>
+          </motion.div>
           {(plan.priceDetail === "Forever" || plan.priceDetail === "Contact Sales" || plan.priceDetail === "Event or Student Access") && (
-            <p className="text-sm text-gray-400 mt-1">{plan.priceDetail}</p>
+            <motion.p
+              className="text-sm text-gray-400 mt-1"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.25, duration: 0.8 }}
+            >
+              {plan.priceDetail}
+            </motion.p>
           )}
         </div>
 
         {/* CTA Button */}
         <motion.button
-          className={`w-full py-3 md:py-3.5 rounded-xl backdrop-blur-xl bg-gradient-to-r ${plan.gradient} border border-white/20 mb-6 md:mb-8 group/btn relative overflow-hidden`}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          className={`w-full py-3 md:py-3.5 rounded-xl backdrop-blur-xl bg-gradient-to-r ${plan.gradient} border border-white/20 mb-6 md:mb-8 group/btn relative overflow-hidden font-medium`}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
           <span className="relative z-10 text-sm md:text-base">
             {plan.price === "Custom" ? "Contact Sales" : "Get Started"}
           </span>
           <motion.div
-            className="absolute inset-0 bg-white/10"
+            className="absolute inset-0 bg-white/10 group-hover/btn:bg-white/20"
             initial={{ x: "-100%" }}
             whileHover={{ x: "100%" }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
           />
         </motion.button>
 
@@ -297,14 +363,18 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
           {plan.features.map((feature, idx) => (
             <motion.div
               key={idx}
-              className="flex items-start gap-3"
-              initial={{ opacity: 0, x: -10 }}
+              className="flex items-start gap-3 group/item"
+              initial={{ opacity: 0, x: -15 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.05 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ delay: idx * 0.06, duration: 0.6 }}
             >
-              <Check className={`w-4 h-4 md:w-5 md:h-5 mt-0.5 flex-shrink-0 bg-gradient-to-br ${plan.gradient} bg-clip-text text-transparent`} strokeWidth={3} />
-              <span className="text-xs md:text-sm text-gray-300 leading-relaxed">
+              <motion.div
+                whileHover={{ scale: 1.2, rotate: 10 }}
+              >
+                <Check className={`w-4 h-4 md:w-5 md:h-5 mt-0.5 flex-shrink-0 bg-gradient-to-br ${plan.gradient} bg-clip-text text-transparent`} strokeWidth={3} />
+              </motion.div>
+              <span className="text-xs md:text-sm text-gray-300 leading-relaxed group-hover/item:text-gray-100 transition-colors duration-300">
                 {feature}
               </span>
             </motion.div>
@@ -313,9 +383,9 @@ function PricingCard({ plan, index }: { plan: typeof plans[0], index: number }) 
 
         {/* Decorative orbital ring */}
         <motion.div
-          className="absolute -bottom-6 -right-6 w-24 h-24 md:w-32 md:h-32 rounded-full border border-white/5 pointer-events-none"
+          className="absolute -bottom-6 -right-6 w-24 h-24 md:w-32 md:h-32 rounded-full border border-white/5 group-hover:border-white/10 pointer-events-none transition-colors duration-300"
           animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
         >
           <div className={`absolute top-0 left-1/2 w-2 h-2 rounded-full bg-gradient-to-br ${plan.gradient} -translate-x-1/2`} />
         </motion.div>

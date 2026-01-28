@@ -38,7 +38,7 @@ export function InteractiveCodeBlock() {
         ))}
       </div>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto">
+      <div className="relative z-10 max-w-7xl mx-auto">
         {/* Section title */}
         <motion.div
           className="text-center mb-8 md:mb-12"

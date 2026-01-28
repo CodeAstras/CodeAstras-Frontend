@@ -28,34 +28,22 @@ export function ThematicFloatingElements() {
 
   const cosmicElements = [
     // Collaboration icons
-    { Icon: Users, position: { top: "8%", left: "8%", rotate: 15 }, color: "from-cyan-400 to-blue-500", size: "md" },
-    { Icon: Share2, position: { top: "12%", right: "12%", rotate: -20 }, color: "from-purple-400 to-pink-500", size: "sm" },
-    { Icon: MessageSquare, position: { top: "25%", left: "5%", rotate: 25 }, color: "from-cyan-400 to-purple-500", size: "lg" },
+    { Icon: Users, position: { top: "10%", left: "10%", rotate: 15 }, color: "from-cyan-400 to-blue-500", size: "md" },
+    { Icon: MessageSquare, position: { top: "25%", left: "8%", rotate: 25 }, color: "from-cyan-400 to-purple-500", size: "lg" },
     
     // Version control
-    { Icon: GitBranch, position: { top: "35%", right: "7%", rotate: -15 }, color: "from-emerald-400 to-cyan-500", size: "md" },
-    { Icon: Workflow, position: { top: "45%", left: "10%", rotate: 20 }, color: "from-blue-400 to-indigo-500", size: "sm" },
-    
-    // Real-time presence
-    { Icon: Radio, position: { top: "55%", right: "15%", rotate: -25 }, color: "from-pink-400 to-purple-500", size: "lg" },
-    { Icon: Eye, position: { top: "40%", left: "3%", rotate: 10 }, color: "from-cyan-400 to-blue-500", size: "sm" },
+    { Icon: GitBranch, position: { top: "35%", right: "12%", rotate: -15 }, color: "from-emerald-400 to-cyan-500", size: "md" },
+    { Icon: Radio, position: { top: "55%", right: "10%", rotate: -25 }, color: "from-pink-400 to-purple-500", size: "lg" },
     
     // Voice & communication
-    { Icon: Mic, position: { top: "65%", left: "8%", rotate: 15 }, color: "from-purple-400 to-pink-500", size: "md" },
-    { Icon: Globe, position: { top: "70%", right: "10%", rotate: -30 }, color: "from-orange-400 to-red-500", size: "sm" },
-    
-    // File & workspace
-    { Icon: FolderTree, position: { top: "78%", left: "12%", rotate: 20 }, color: "from-emerald-400 to-cyan-500", size: "lg" },
-    { Icon: FileCode, position: { top: "85%", right: "18%", rotate: -15 }, color: "from-yellow-400 to-orange-500", size: "md" },
-    { Icon: Layers, position: { top: "90%", left: "20%", rotate: 25 }, color: "from-blue-400 to-cyan-500", size: "sm" },
+    { Icon: Mic, position: { top: "65%", left: "12%", rotate: 15 }, color: "from-purple-400 to-pink-500", size: "md" },
+    { Icon: FolderTree, position: { top: "80%", left: "15%", rotate: 20 }, color: "from-emerald-400 to-cyan-500", size: "lg" },
     
     // Cloud & sync
-    { Icon: Cloud, position: { top: "18%", right: "25%", rotate: -20 }, color: "from-cyan-400 to-purple-500", size: "md" },
-    { Icon: Zap, position: { top: "50%", right: "3%", rotate: 15 }, color: "from-yellow-400 to-orange-500", size: "lg" },
+    { Icon: Zap, position: { top: "50%", right: "8%", rotate: 15 }, color: "from-yellow-400 to-orange-500", size: "md" },
     
     // Security & access
-    { Icon: Lock, position: { top: "32%", left: "15%", rotate: -10 }, color: "from-indigo-400 to-purple-500", size: "sm" },
-    { Icon: CodeXml, position: { top: "60%", right: "20%", rotate: 20 }, color: "from-pink-400 to-purple-500", size: "md" },
+    { Icon: Lock, position: { top: "40%", left: "18%", rotate: -10 }, color: "from-indigo-400 to-purple-500", size: "sm" },
   ];
 
   const getSizeClasses = (size: string) => {
