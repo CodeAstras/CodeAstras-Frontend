@@ -52,10 +52,10 @@ export default function About() {
             </header>
 
             {/* Main Content */}
-            <main className="relative z-10">
+            <main className="relative z-10 space-y-8 pb-20">
                 {/* Hero Section - Beyond the Interview */}
-                <section className="relative py-20 md:py-32 overflow-hidden">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                <section className="relative pt-32 pb-12 overflow-hidden">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
                             className="text-center space-y-8"
                             initial={{ opacity: 0, y: 30 }}
@@ -63,11 +63,11 @@ export default function About() {
                             transition={{ duration: 0.8 }}
                         >
                             {/* Heading */}
-                            <div className="space-y-2">
-                                <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold">
+                            <div className="space-y-4">
+                                <h1 className="text-4xl md:text-5xl xl:text-6xl font-semibold tracking-tight">
                                     Beyond the{" "}
                                     <span className="relative inline-block">
-                                        <span className="absolute inset-0 blur-2xl bg-gradient-to-r from-purple-400 to-cyan-400 opacity-30" />
+                                        <span className="absolute inset-0 blur-2xl bg-gradient-to-r from-purple-400 to-cyan-400 opacity-20" />
                                         <span className="relative bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
                                             Interview
                                         </span>
@@ -77,15 +77,15 @@ export default function About() {
 
                             {/* Quote */}
                             <motion.div
-                                className="max-w-4xl mx-auto space-y-4"
+                                className="max-w-3xl mx-auto space-y-6"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.3, duration: 0.8 }}
                             >
-                                <p className="text-xl md:text-2xl text-gray-300 leading-relaxed">
+                                <p className="text-xl md:text-2xl text-gray-300 leading-relaxed font-light">
                                     Great engineers aren't defined by memorized answers.
                                 </p>
-                                <p className="text-xl md:text-2xl text-gray-300 leading-relaxed">
+                                <p className="text-xl md:text-2xl text-gray-300 leading-relaxed font-light">
                                     They are defined by how they <span className="text-white font-medium">think</span>, <span className="text-purple-400 font-medium">collaborate</span>, and <span className="text-cyan-400 font-medium">solve problems</span>.
                                 </p>
                             </motion.div>
@@ -93,49 +93,51 @@ export default function About() {
                     </div>
                 </section>
 
-                {/* About CodeAstras Section */}
-                <section className="relative py-16 md:py-24">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                {/* About CodeAstras Section - Boxed */}
+                <section className="relative">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
-                            className="space-y-6"
+                            className="group p-8 md:p-12 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/[0.07] transition-colors duration-500"
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                            <h2 className="text-2xl md:text-3xl font-semibold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6">
                                 About CodeAstras
                             </h2>
-                            <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
-                                At CodeAstras, we believe great engineers are not defined by memorized answers or isolated coding tasks — they're defined by how they think, collaborate, and solve problems in real time.
-                            </p>
-                            <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
-                                That belief is what led us to build CodeAstras.
-                            </p>
+                            <div className="space-y-6">
+                                <p className="text-lg text-gray-300 leading-relaxed font-light">
+                                    At CodeAstras, we believe great engineers are not defined by memorized answers or isolated coding tasks — they're defined by how they think, collaborate, and solve problems in real time.
+                                </p>
+                                <p className="text-lg text-gray-300 leading-relaxed font-light">
+                                    That belief is what led us to build CodeAstras.
+                                </p>
+                            </div>
                         </motion.div>
                     </div>
                 </section>
 
-                {/* Our Story Section */}
-                <section className="relative py-16 md:py-24">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                {/* Our Story Section - Boxed */}
+                <section className="relative">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
-                            className="space-y-8"
+                            className="group p-8 md:p-12 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/[0.07] transition-colors duration-500"
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-purple-400">
+                            <h2 className="text-2xl md:text-3xl font-semibold text-purple-400 mb-8">
                                 Our Story
                             </h2>
 
                             <div className="space-y-6">
-                                <p className="text-lg text-gray-300 leading-relaxed">
+                                <p className="text-lg text-gray-300 leading-relaxed font-light">
                                     CodeAstras was created to solve a simple but persistent problem:{" "}
                                     <span className="text-white font-medium">technical interviews and collaborative coding rarely reflect real engineering work.</span>
                                 </p>
-                                <p className="text-lg text-gray-300 leading-relaxed">
+                                <p className="text-lg text-gray-300 leading-relaxed font-light">
                                     Most platforms either test candidates in isolation or provide collaboration tools that lack execution safety and realism. As engineers ourselves, we wanted a system that mirrors how teams actually work — discussing ideas, writing code together, debugging, and making decisions under real constraints.
                                 </p>
                                 <p className="text-lg text-cyan-400 italic font-medium">
@@ -146,73 +148,73 @@ export default function About() {
                     </div>
                 </section>
 
-                {/* Who We Serve Section */}
-                <section className="relative py-16 md:py-24">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                {/* Who We Serve Section - Boxed */}
+                <section className="relative">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
-                            className="space-y-8"
+                            className="p-8 md:p-12 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-cyan-400">
+                            <h2 className="text-2xl md:text-3xl font-semibold text-cyan-400 mb-8">
                                 Who We Serve
                             </h2>
 
-                            <p className="text-lg text-gray-300">
+                            <p className="text-lg text-gray-300 font-light mb-8">
                                 CodeAstras is built for:
                             </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {[
                                     { icon: Users, text: "Engineering teams conducting technical interviews" },
-                                    { icon: Target, text: "Interviewers who want to evaluate real problem-solving, not rehearsed answers" },
-                                    { icon: Code2, text: "Developers who want a fair, collaborative interview experience" },
+                                    { icon: Target, text: "Interviewers who want to evaluate real problem-solving" },
+                                    { icon: Code2, text: "Developers who want a fair, collaborative experience" },
                                     { icon: Sparkles, text: "Educators and mentors running live coding sessions" }
                                 ].map((item, index) => (
                                     <motion.div
                                         key={index}
-                                        className="flex items-start gap-4 p-6 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all"
+                                        className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all"
                                         initial={{ opacity: 0, y: 20 }}
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: index * 0.1, duration: 0.5 }}
                                     >
-                                        <div className="shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/30">
-                                            <item.icon className="w-5 h-5 text-cyan-400" />
+                                        <div className="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/30">
+                                            <item.icon className="w-4 h-4 text-cyan-400" />
                                         </div>
-                                        <p className="text-gray-300 leading-relaxed">{item.text}</p>
+                                        <p className="text-sm text-gray-300 leading-relaxed font-light">{item.text}</p>
                                     </motion.div>
                                 ))}
                             </div>
 
-                            <p className="text-lg text-white font-medium pt-4">
+                            <p className="text-lg text-white font-medium pt-8">
                                 If your work involves evaluating or collaborating with developers, CodeAstras is designed for you.
                             </p>
                         </motion.div>
                     </div>
                 </section>
 
-                {/* What Makes Us Different Section */}
-                <section className="relative py-16 md:py-24">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                {/* What Makes Us Different Section - Boxed */}
+                <section className="relative">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
-                            className="space-y-8"
+                            className="p-8 md:p-12 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                            <h2 className="text-2xl md:text-3xl font-semibold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent mb-8">
                                 What Makes CodeAstras Different
                             </h2>
 
-                            <p className="text-lg text-gray-300">
+                            <p className="text-lg text-gray-300 font-light mb-8">
                                 We focus on what matters most during real technical collaboration:
                             </p>
 
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 {[
                                     { title: "Real-time collaboration", desc: "code together, not alone" },
                                     { title: "Live, isolated code execution", desc: "safe and controlled environments" },
@@ -221,41 +223,41 @@ export default function About() {
                                 ].map((item, index) => (
                                     <motion.div
                                         key={index}
-                                        className="p-6 rounded-xl bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/20 backdrop-blur-sm"
+                                        className="p-4 rounded-xl bg-gradient-to-r from-purple-500/5 to-cyan-500/5 border border-white/5"
                                         initial={{ opacity: 0, x: -20 }}
                                         whileInView={{ opacity: 1, x: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: index * 0.1, duration: 0.5 }}
                                     >
-                                        <h3 className="text-xl font-semibold text-white mb-2">
+                                        <h3 className="text-lg font-medium text-white mb-1">
                                             {item.title}
                                         </h3>
-                                        <p className="text-gray-400">— {item.desc}</p>
+                                        <p className="text-sm text-gray-400 font-light">— {item.desc}</p>
                                     </motion.div>
                                 ))}
                             </div>
 
-                            <p className="text-lg text-cyan-400 font-medium pt-4">
+                            <p className="text-lg text-cyan-400 font-medium pt-8">
                                 Instead of optimizing for flash, we optimize for signal.
                             </p>
                         </motion.div>
                     </div>
                 </section>
 
-                {/* Our Mission Section */}
-                <section className="relative py-16 md:py-24">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                {/* Our Mission Section - Boxed */}
+                <section className="relative">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
-                            className="p-8 md:p-12 rounded-2xl bg-gradient-to-br from-purple-500/10 via-transparent to-cyan-500/10 border border-purple-500/20 backdrop-blur-xl"
+                            className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-purple-500/10 via-white/5 to-cyan-500/10 border border-purple-500/20 backdrop-blur-xl"
                             initial={{ opacity: 0, scale: 0.95 }}
                             whileInView={{ opacity: 1, scale: 1 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-purple-400 mb-6">
+                            <h2 className="text-2xl md:text-3xl font-semibold text-purple-400 mb-6">
                                 Our Mission
                             </h2>
-                            <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-6">
+                            <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-6 font-light">
                                 Our mission is to make technical collaboration more authentic, fair, and effective — whether it's an interview, a mentoring session, or a team problem-solving exercise.
                             </p>
                             <p className="text-lg md:text-xl text-white font-medium">
@@ -265,97 +267,99 @@ export default function About() {
                     </div>
                 </section>
 
-                {/* The People Behind Section */}
-                <section className="relative py-16 md:py-24">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                {/* The People Behind Section - Boxed */}
+                <section className="relative">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
-                            className="space-y-6"
+                            className="p-8 md:p-12 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-cyan-400 flex items-center gap-3">
-                                <Heart className="w-8 h-8" />
+                            <h2 className="text-2xl md:text-3xl font-semibold text-cyan-400 flex items-center gap-3 mb-6">
+                                <Heart className="w-6 h-6 md:w-8 md:h-8" />
                                 The People Behind CodeAstras
                             </h2>
 
-                            <p className="text-lg text-gray-300 leading-relaxed">
-                                CodeAstras is built by engineers who care deeply about clean systems, thoughtful design, and real-world usability. We're actively building, testing, and improving the platform based on hands-on experience and honest feedback.
-                            </p>
-                            <p className="text-lg text-gray-300 leading-relaxed">
-                                As an early-stage product, we value transparency, iteration, and technical rigor over marketing claims.
-                            </p>
+                            <div className="space-y-6">
+                                <p className="text-lg text-gray-300 leading-relaxed font-light">
+                                    CodeAstras is built by engineers who care deeply about clean systems, thoughtful design, and real-world usability. We're actively building, testing, and improving the platform based on hands-on experience and honest feedback.
+                                </p>
+                                <p className="text-lg text-gray-300 leading-relaxed font-light">
+                                    As an early-stage product, we value transparency, iteration, and technical rigor over marketing claims.
+                                </p>
+                            </div>
                         </motion.div>
                     </div>
                 </section>
 
-                {/* Where We Are Today Section */}
-                <section className="relative py-16 md:py-24">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                {/* Where We Are Today Section - Boxed */}
+                <section className="relative">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
-                            className="space-y-8"
+                            className="p-8 md:p-12 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold text-purple-400">
+                            <h2 className="text-2xl md:text-3xl font-semibold text-purple-400 mb-8">
                                 Where We Are Today
                             </h2>
 
-                            <p className="text-lg text-gray-300">
+                            <p className="text-lg text-gray-300 font-light mb-8">
                                 CodeAstras is currently in active development and early use. We're focused on:
                             </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {[
                                     { icon: Zap, text: "Shipping reliable features" },
                                     { icon: Users, text: "Learning from real users" },
-                                    { icon: Sparkles, text: "Improving the collaboration experience step by step" }
+                                    { icon: Sparkles, text: "Improving experience" }
                                 ].map((item, index) => (
                                     <motion.div
                                         key={index}
-                                        className="p-6 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-center space-y-4"
+                                        className="p-4 rounded-xl bg-white/5 border border-white/10 text-center space-y-3"
                                         initial={{ opacity: 0, y: 20 }}
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: index * 0.1, duration: 0.5 }}
                                     >
-                                        <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/30">
-                                            <item.icon className="w-6 h-6 text-cyan-400" />
+                                        <div className="w-10 h-10 mx-auto rounded-lg bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/30">
+                                            <item.icon className="w-5 h-5 text-cyan-400" />
                                         </div>
-                                        <p className="text-gray-300">{item.text}</p>
+                                        <p className="text-sm text-gray-300 font-light">{item.text}</p>
                                     </motion.div>
                                 ))}
                             </div>
 
-                            <p className="text-lg text-gray-300 pt-4">
+                            <p className="text-lg text-gray-300 pt-8 font-light">
                                 Every feature is built with long-term scalability and security in mind.
                             </p>
                         </motion.div>
                     </div>
                 </section>
 
-                {/* Why Choose CodeAstras Section */}
-                <section className="relative py-16 md:py-24">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                {/* Why Choose CodeAstras Section - Boxed */}
+                <section className="relative">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
-                            className="space-y-8"
+                            className="p-8 md:p-12 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                            <h2 className="text-2xl md:text-3xl font-semibold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-8">
                                 Why Choose CodeAstras?
                             </h2>
 
-                            <p className="text-lg text-gray-300">
+                            <p className="text-lg text-gray-300 font-light mb-8">
                                 Choose CodeAstras if you want:
                             </p>
 
-                            <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {[
                                     "A collaboration experience that feels real",
                                     "Interviews that reflect actual engineering work",
@@ -364,19 +368,19 @@ export default function About() {
                                 ].map((item, index) => (
                                     <motion.div
                                         key={index}
-                                        className="flex items-center gap-4 p-4 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all"
+                                        className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
                                         initial={{ opacity: 0, x: -20 }}
                                         whileInView={{ opacity: 1, x: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: index * 0.1, duration: 0.5 }}
                                     >
-                                        <div className="shrink-0 w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-cyan-400" />
-                                        <p className="text-lg text-gray-300">{item}</p>
+                                        <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-400 to-cyan-400" />
+                                        <p className="text-sm text-gray-300 font-light">{item}</p>
                                     </motion.div>
                                 ))}
                             </div>
 
-                            <p className="text-lg text-white font-medium pt-4">
+                            <p className="text-lg text-white font-medium pt-8">
                                 We're not trying to replace how engineers think — we're trying to support it.
                             </p>
                         </motion.div>
@@ -384,8 +388,8 @@ export default function About() {
                 </section>
 
                 {/* Call to Action Section */}
-                <section className="relative py-20 md:py-32">
-                    <div className="max-w-6xl mx-auto px-8 md:px-16 lg:px-32">
+                <section className="relative pt-8 pb-32">
+                    <div className="max-w-4xl mx-auto px-6">
                         <motion.div
                             className="p-12 md:p-16 rounded-3xl bg-gradient-to-br from-purple-600/20 via-purple-500/10 to-cyan-500/20 border border-purple-500/30 backdrop-blur-xl text-center space-y-8"
                             initial={{ opacity: 0, y: 30 }}
@@ -393,16 +397,16 @@ export default function About() {
                             viewport={{ once: true }}
                             transition={{ duration: 0.8 }}
                         >
-                            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
+                            <h2 className="text-4xl md:text-5xl font-semibold bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
                                 Ready to Collaborate?
                             </h2>
-                            <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+                            <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed font-light">
                                 Whether you're conducting interviews, running collaborative sessions, or exploring better ways to work together, we'd love for you to try CodeAstras.
                             </p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                                 <a
                                     href="/signup"
-                                    className="group px-8 py-4 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] text-white font-medium text-lg hover:opacity-90 transition-all flex items-center gap-2"
+                                    className="group px-8 py-4 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] text-white font-medium text-lg hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-purple-500/25"
                                 >
                                     Start a Session
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -414,7 +418,7 @@ export default function About() {
                                     Learn More
                                 </a>
                             </div>
-                            <p className="text-gray-400 text-lg pt-4">
+                            <p className="text-gray-400 text-base pt-4">
                                 Collaborate live. See the difference.
                             </p>
                         </motion.div>

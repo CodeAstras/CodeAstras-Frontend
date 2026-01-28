@@ -33,7 +33,7 @@ export function Footer() {
       {/* Background glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-gradient-to-t from-cyan-400/10 via-purple-500/5 to-transparent blur-3xl" />
 
-      <div className="relative z-10 max-w-[1400px] mx-auto">
+      <div className="relative z-10 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8 mb-8 md:mb-10">
           {/* Brand column */}
           <ScrollReveal direction="up" className="lg:col-span-2">

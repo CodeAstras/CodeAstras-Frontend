@@ -21,21 +21,21 @@ export function ScrollReveal({
   const getInitialPosition = () => {
     switch (direction) {
       case "up":
-        return { y: 100, x: 0 };
+        return { y: 80, x: 0 };
       case "down":
-        return { y: -100, x: 0 };
+        return { y: -80, x: 0 };
       case "left":
-        return { x: 100, y: 0 };
+        return { x: 80, y: 0 };
       case "right":
-        return { x: -100, y: 0 };
+        return { x: -80, y: 0 };
     }
   };
 
   const initial = {
     opacity: 0,
     ...getInitialPosition(),
-    ...(scale && { scale: 0.8 }),
-    ...(rotate && { rotateX: -20 }),
+    ...(scale && { scale: 0.85 }),
+    ...(rotate && { rotateX: -15 }),
   };
 
   const whileInView = {
@@ -51,9 +51,9 @@ export function ScrollReveal({
       className={className}
       initial={initial}
       whileInView={whileInView}
-      viewport={{ once: true, margin: "-100px" }}
+      viewport={{ once: true, margin: "-80px" }}
       transition={{
-        duration: 0.8,
+        duration: 1.2,
         delay,
         ease: [0.25, 0.46, 0.45, 0.94],
       }}
@@ -75,7 +75,7 @@ export function Parallax({ children, speed = 0.5 }: ParallaxProps) {
     offset: ["start end", "end start"],
   });
 
-  const y = useTransform(scrollYProgress, [0, 1], [-100 * speed, 100 * speed]);
+  const y = useTransform(scrollYProgress, [0, 1], [-120 * speed, 120 * speed]);
 
   return (
     <motion.div ref={ref} style={{ y }}>
@@ -95,9 +95,9 @@ export function ScrollScale3D({ children }: ScrollScale3DProps) {
     offset: ["start end", "end start"],
   });
 
-  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1, 0.8]);
-  const rotateX = useTransform(scrollYProgress, [0, 0.5, 1], [25, 0, -25]);
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.75, 1, 0.75]);
+  const rotateX = useTransform(scrollYProgress, [0, 0.5, 1], [30, 0, -30]);
+  const opacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
 
   return (
     <motion.div
@@ -106,10 +106,42 @@ export function ScrollScale3D({ children }: ScrollScale3DProps) {
         scale,
         rotateX,
         opacity,
-        transformPerspective: 1000,
+        transformPerspective: 1200,
       }}
     >
       {children}
     </motion.div>
+  );
+}
+
+// New smooth text animation component
+interface SmoothTextProps {
+  children: string;
+  className?: string;
+  delay?: number;
+}
+
+export function SmoothText({ children, className = "", delay = 0 }: SmoothTextProps) {
+  const words = children.split(" ");
+  
+  return (
+    <motion.span className={className}>
+      {words.map((word, index) => (
+        <motion.span
+          key={index}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{
+            duration: 0.8,
+            delay: delay + index * 0.1,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
+          className="inline-block"
+        >
+          {word}&nbsp;
+        </motion.span>
+      ))}
+    </motion.span>
   );
 }

@@ -14,7 +14,7 @@ export function InteractiveCosmicStars() {
 
   // Generate star positions
   const [stars] = useState(() => 
-    Array.from({ length: 80 }, (_, i) => ({
+    Array.from({ length: 40 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -110,12 +110,12 @@ export function InteractiveCosmicStars() {
       })}
 
       {/* Shooting stars */}
-      {[...Array(3)].map((_, i) => (
+      {[...Array(1)].map((_, i) => (
         <ShootingStar key={`shooting-${i}`} delay={i * 8} />
       ))}
 
       {/* Floating particles with scroll interaction */}
-      {[...Array(20)].map((_, i) => {
+      {[...Array(8)].map((_, i) => {
         const particleScrollY = useTransform(
           scrollYProgress,
           [0, 1],
